@@ -131,7 +131,8 @@ sub linkEdges {
     push @edges , @nextBatch ;
 
     # pop to the new edge
-    $fs = pop @edges ;
+#     $fs = pop @edges ;
+    $fs = shift @edges ;
 
     # repeat
     linkEdges();

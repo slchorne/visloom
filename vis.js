@@ -2,6 +2,8 @@
 
 // setup the GLOBALS
 
+var MAXNODES = 30 ;
+
 var width = 600,
     height = 400;
 
@@ -20,6 +22,7 @@ var jsonData ;
 
 // ---------------------------
 // insert additional data after some time
+/*
 setTimeout(function() {
     console.log( "more data");
     var h = {
@@ -34,6 +37,7 @@ setTimeout(function() {
 
     redrawSVG();
 },5000);
+*/
 
 // ---------------------------
 // set up input event handlers
@@ -103,7 +107,7 @@ function nextData() {
         // loop/reset
         console.log( "reset" );
 
-        getHostsOnly( jsonData );
+        setNodesToHosts( jsonData );
         reindexLinks( jsonData );
 
         redrawSVG();
@@ -143,11 +147,73 @@ function initData( json ) {
 
 function getHostFlows( json ) {
 
-    json.nodes.length = 0 ;
-    json.links.length = 0 ;
+    // we have to assume the node list is undefined,
+    // but the host list is something we can work from
 
-    json.nodes.push.apply( json.nodes , json.hosts );
-    json.links.push.apply( json.links , json.flows );
+    if ( json.hosts.length > MAXNODES ) {
+        // we need a summary by group
+        getGroupLinks( json );
+
+        // and we need a host lookup index
+        reindexHosts( json );
+
+        //console.log ( "hix" , json.hostIndex );
+
+        // so we can create a summary index of flows
+        var flowIndex = {};
+        json.flows.forEach(function(d, i) {
+            // find the source and dst type
+            // and summarise flows by type
+
+            var st,dt
+            if ( json.hostIndex[d.src] ) {
+                st= json.hostIndex[d.src].type
+            }
+            else {
+                console.log ( "Bad f src" , d );
+            }
+            if ( json.hostIndex[d.dst] ) {
+                dt= json.hostIndex[d.dst].type
+            }
+            else {
+                console.log ( "Bad f dst" , d );
+            }
+
+            //console.log ( "new flow : " , st , dt );
+
+            if ( st && dt ) {
+                if ( ! flowIndex[st] ) {
+                    flowIndex[st] = {}
+                }
+                flowIndex[st][dt]=1;
+            }
+
+        });
+
+        // console.log( 'fix' , flowIndex );
+
+        // now walk the flow summaries
+        Object.keys(flowIndex).forEach(function(k, i) {
+            var fs = k;
+            Object.keys(flowIndex[fs]).forEach(function(k, i) {
+                var fd = k;
+
+                //console.log ( "add flow : " , fs , fd );
+
+                if ( ! ( fs === fd ) ) {
+                    json.links.push({
+                        src: fs,
+                        dst: fd
+                    });
+                }
+            });
+        });
+
+    }
+    else {
+        setNodesToHosts( json );
+        json.links.push.apply( json.links , json.flows );
+    }
 
     return 1;
 }
@@ -169,54 +235,49 @@ function getSwitchLinks( json ) {
     // reset the nodes array
     // [ ] I should use an index to refs in the array...
 
-    json.nodes.length = 0 ;
+    setNodesToHosts( json );
+
     json.nodes.push.apply( json.nodes , json.switches );
-    json.nodes.push.apply( json.nodes , json.hosts );
+    //json.nodes.push.apply( json.nodes , json.hosts );
 
     // and link hosts to switches
-    json.links.length = 0 ;
-    json.hosts.forEach(function(d, i) {
-        json.links.push({
-            src: d.id,
-            dst: d.ovs
+    //json.links.length = 0 ;
+    if ( json.hosts.length < MAXNODES ) {
+        json.hosts.forEach(function(d, i) {
+            json.links.push({
+                src: d.id,
+                dst: d.ovs
+            });
         });
-    });
+    }
 
     //console.log ( 'gsl' , json );
 
     return 1;
 }
 
-function getHostsOnly( json ) {
-    // reset the data
-    json.nodes.length = 0 ;
-    json.links.length = 0 ;
-
-    json.nodes.push.apply( json.nodes , json.hosts );
-
-    return 1;
-}
-
 function getGroupLinks( json ) {
+    // list the host gropus and link all VISIBLE hosts
+    // to the groups
 
     // we can't change where the link array points, so we have to
     // manipulate it from here
 
     // reset the data
-    json.nodes.length = 0 ;
-    json.links.length = 0 ;
+    setNodesToHosts( json );
 
     json.nodes.push.apply( json.nodes , getGroupNodes(json) );
-    json.nodes.push.apply( json.nodes , json.hosts );
 
     // now walk each of the hosts array
     // and create links to their parent node
-    json.hosts.forEach(function(d, i) {
-        json.links.push({
-            src: d.id,
-            dst: d.type
+    if ( json.hosts.length < MAXNODES ) {
+        json.hosts.forEach(function(d, i) {
+            json.links.push({
+                src: d.id,
+                dst: d.type
+            });
         });
-    });
+    }
 
     return 1 ;
 }
@@ -228,13 +289,50 @@ function getGroupNodes( json ) {
     Object.keys(json.types).forEach(function(k, i) {
         gnodes.push({
             id: k,
-            name: k,
+            name: k + " - " + json.types[k],
             type: k,
             nodetype: 'root'
         });
     });
 
     return gnodes ;
+}
+
+function setNodesToHosts( json ) {
+    // this is usually the initial state
+    // reset the data
+    json.nodes.length = 0 ;
+    json.links.length = 0 ;
+
+    // get unique categories for each host type
+    json.types = {};
+    json.hosts.forEach(function(d, i) {
+        if ( ! json.types[d.type] ) {
+            json.types[d.type] = 1;
+        }
+        else {
+            json.types[d.type]++ ;
+        }
+    });
+
+    //console.log ( 'types' , json.types );
+
+    // if we have too many hosts, we need to summarise, and don't report
+    // hosts
+    //  json.nodes.push.apply( json.nodes , getGroupNodes(json) );
+    if ( json.hosts.length < MAXNODES ) {
+        json.nodes.push.apply( json.nodes , json.hosts );
+    }
+    else {
+        json.nodes.push({
+            "id": "summ", 
+            "name": json.hosts.length + " hosts",
+            "type": "summary", 
+             "ovs": ""
+        });
+    }
+
+    return 1;
 }
 
 function readData( json ) {
@@ -251,25 +349,32 @@ function readData( json ) {
     json.switches.forEach(function(d, i) {
         d.nodetype = 'root';
     });
+
+    setNodesToHosts( json );
     
-    // get unique categories for each host type
-    json.types = {};
-    json.hosts.forEach(function(d, i) {
-        json.types[d.type] = d.type ;
-    });
-
-    // then add them as nodes
-    json.nodes.push.apply( json.nodes , json.hosts );
-    //json.nodes.push.apply( json.nodes , getGroupNodes(json) );
-
-
-    // if you were setting links initially, you'd do it here
-    //getGroupLinks( json );
-    //reindexLinks( json );
-
     //console.log( json );
 
     return ( json );
+
+}
+
+function reindexHosts( json ) {
+
+    // index the nodes by 'id'
+    json.hostIndex = {};
+    json.hosts.forEach(function(d, i) {
+        json.hostIndex[d.id] = d;
+    });
+
+}
+
+function reindexNodes( json ) {
+
+    // index the nodes by 'id'
+    json.nodeIndex = {};
+    json.nodes.forEach(function(d, i) {
+        json.nodeIndex[d.id] = d;
+    });
 
 }
 
@@ -287,17 +392,13 @@ function reindexLinks( json ) {
     // WARNING: This will get unwieldy with large datasets
     // we should find a way to pop and push links instead
 
-    // index the nodes by 'id'
-    var nodeIndex = {};
-    json.nodes.forEach(function(d, i) {
-        nodeIndex[d.id] = d;
-    });
+    reindexNodes( json );
 
     // now walk the links array and insert refs to the nodes
     // force.links uses 'd.source' and 'd.target'
     json.links.forEach(function(d, i) {
-      d.source = nodeIndex[d.src];
-      d.target = nodeIndex[d.dst];
+      d.source = json.nodeIndex[d.src];
+      d.target = json.nodeIndex[d.dst];
     });
 
 }
@@ -327,7 +428,7 @@ function initD3( json ) {
         // point to the JSON dataset
         .nodes(json.nodes)
         .links(json.links)
-        .charge(-300)
+        .charge(-200)
         .linkDistance(90)
         .size([width, height])
         // the tick method creates the layout, so it needs to return the

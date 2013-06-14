@@ -5,25 +5,38 @@ Visualise network flows
 [x] force directed
     http://bl.ocks.org/mbostock/4062045
 
-[ ] fisheye distortion
-    http://bost.ocks.org/mike/fisheye/
+[ ] summarise data when the node count gets too high
+    [ ] stop at 30-40
 
-[ ] Flare ? if collapsable
-    http://mbostock.github.io/d3/talk/20111018/tree.html
-    http://bl.ocks.org/mbostock/4063570
+    [ ] types, #of nodes
 
-[ ] sankey for flows
+    [ ] zoom re-draws the graph accordingly
 
-var sankey = d3.sankey()
-    .size([width, height])
-    .nodeWidth(15)
-    .nodePadding(10)
-    .nodes(energy.nodes)
-    .links(energy.links)
-    .layout(32);
+    [ ] switch view, culls the nodes
 
-[ ] Chord diagram for flows ?
-    http://bost.ocks.org/mike/uberdata/
+[x] show flows between notes
+    [ ] show the flow table
+
+[ ] other rendering options
+    [ ] fisheye distortion
+        http://bost.ocks.org/mike/fisheye/
+
+    [ ] Flare ? if collapsable
+        http://mbostock.github.io/d3/talk/20111018/tree.html
+        http://bl.ocks.org/mbostock/4063570
+
+    [ ] sankey for flows
+
+    var sankey = d3.sankey()
+        .size([width, height])
+        .nodeWidth(15)
+        .nodePadding(10)
+        .nodes(energy.nodes)
+        .links(energy.links)
+        .layout(32);
+
+    [ ] Chord diagram for flows ?
+        http://bost.ocks.org/mike/uberdata/
 
 [x] define a data structure
 
@@ -35,7 +48,4 @@ var sankey = d3.sankey()
     [x] animate between this and the by-type view
     [x] show nodes attached to a switch
     [x] show interconnect betwen switches
-
-[ ] show flows between notes
-    [ ] show the flow table
 
