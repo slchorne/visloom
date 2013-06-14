@@ -13,19 +13,28 @@ Visualise network flows
     http://bl.ocks.org/mbostock/4063570
 
 [ ] sankey for flows
+
+var sankey = d3.sankey()
+    .size([width, height])
+    .nodeWidth(15)
+    .nodePadding(10)
+    .nodes(energy.nodes)
+    .links(energy.links)
+    .layout(32);
+
 [ ] Chord diagram for flows ?
     http://bost.ocks.org/mike/uberdata/
 
 [x] define a data structure
 
 [x] show entities by type (www, ftp, etc)
-    [ ] label nodes
+    [x] label nodes
     [x] show nodes attached to a type object
 
-[ ] show entities by switch 
-    [ ] animate between this and the by-type view
-    [ ] show nodes attached to a switch
-    [ ] show interconnect betwen switches
+[x] show entities by switch 
+    [x] animate between this and the by-type view
+    [x] show nodes attached to a switch
+    [x] show interconnect betwen switches
 
 [ ] show flows between notes
     [ ] show the flow table

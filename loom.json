@@ -4,8 +4,8 @@
         { "id": "02", "name": "www2", "type": "http", "switch": "s1", "port": "04" },
         { "id": "03", "name": "www3", "type": "http", "switch": "s1", "port": "06" },
         { "id": "04", "name": "www4", "type": "http", "switch": "s2", "port": "05" },
-        { "id": "55", "name": "voIP5", "type": "VoIP", "switch": "s3", "port": "10" },
-        { "id": "a", "name": "voIP6", "type": "VoIP", "switch": "s3", "port": "10" }
+        { "id": "55", "name": "VOIP5", "type": "VoIP", "switch": "s3", "port": "10" },
+        { "id": "56", "name": "VOIP6", "type": "VoIP", "switch": "s3", "port": "10" }
     ],
     "switches": [
         { "id": "s1", "name": "Switch1", "type": "switch" },
@@ -19,7 +19,8 @@
     "flows": [
         { "src": "01", "dst": "02", "ts": "2013-02-02" },
         { "src": "01", "dst": "03", "ts": "2013-02-02" },
-        { "src": "01", "dst": "04", "ts": "2013-02-02" }
+        { "src": "01", "dst": "04", "ts": "2013-02-02" },
+        { "src": "55", "dst": "56", "ts": "2013-02-02" }
     ]
 }
 
