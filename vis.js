@@ -18,6 +18,22 @@ var svg,
 
 var jsonData ;
 
+// ---------------------------
+// insert additional data after some time
+setTimeout(function() {
+    console.log( "more data");
+    var h = {
+        "id": "r1", "name": "www-dev", "type": "http", 
+                     "ovs": "s01", "port": "02"
+    };
+
+    jsonData.hosts.push(h);
+    jsonData.nodes.push(h);
+    //getGroupLinks( jsonData );
+    //reindexLinks( jsonData );
+
+    redrawSVG();
+},5000);
 
 // ---------------------------
 // set up input event handlers
@@ -108,6 +124,7 @@ function nextData() {
 //       d3.json( file , callback() );
 
 var infile = "loom.json" ;
+//var infile = "loom-large.json" ;
 d3.json( infile , initData );
 
 // ---------------------------
@@ -153,15 +170,15 @@ function getSwitchLinks( json ) {
     // [ ] I should use an index to refs in the array...
 
     json.nodes.length = 0 ;
-    json.nodes.push.apply( json.nodes , json.hosts );
     json.nodes.push.apply( json.nodes , json.switches );
+    json.nodes.push.apply( json.nodes , json.hosts );
 
     // and link hosts to switches
     json.links.length = 0 ;
     json.hosts.forEach(function(d, i) {
         json.links.push({
             src: d.id,
-            dst: d.switch
+            dst: d.ovs
         });
     });
 
@@ -189,8 +206,8 @@ function getGroupLinks( json ) {
     json.nodes.length = 0 ;
     json.links.length = 0 ;
 
-    json.nodes.push.apply( json.nodes , json.hosts );
     json.nodes.push.apply( json.nodes , getGroupNodes(json) );
+    json.nodes.push.apply( json.nodes , json.hosts );
 
     // now walk each of the hosts array
     // and create links to their parent node
@@ -213,7 +230,7 @@ function getGroupNodes( json ) {
             id: k,
             name: k,
             type: k,
-            class: 'root'
+            nodetype: 'root'
         });
     });
 
@@ -232,7 +249,7 @@ function readData( json ) {
 
     // add in some missing data
     json.switches.forEach(function(d, i) {
-        d.class = 'root';
+        d.nodetype = 'root';
     });
     
     // get unique categories for each host type
@@ -310,8 +327,8 @@ function initD3( json ) {
         // point to the JSON dataset
         .nodes(json.nodes)
         .links(json.links)
-        .charge(-400)
-        .linkDistance(120)
+        .charge(-300)
+        .linkDistance(90)
         .size([width, height])
         // the tick method creates the layout, so it needs to return the
         // nodes and link info, see below
@@ -364,6 +381,22 @@ function redrawSVG() {
     svgLinks.enter().insert("line", ".node").attr("class", "link");
     svgLinks.exit().remove();
 
+    /*
+        ARROWHEADS??
+    svgLinks    
+        .append("svg:marker")
+        .attr("id", String)
+        .attr("class", "link")
+        .attr("viewBox", "0 -5 10 10")
+        .attr("refX", 15)
+        .attr("refY", -1.5)
+        .attr("markerWidth", 6)
+        .attr("markerHeight", 6)
+        .attr("orient", "auto")
+        .append("svg:path")
+        .attr("d", "M0,-5L10,0L0,5");
+    */
+
     // set the data for the list of nodes
     svgNodes = svgNodes.data(force.nodes(), function(d) { return d.id;});
 
@@ -374,22 +407,6 @@ function redrawSVG() {
         .append("g")
         .attr("class","node")
         .call(force.drag)
-
-    /*
-        ARROWHEADS??
-
-    svgNodes    
-        .append("svg:marker")
-        .attr("id", String)
-        .attr("viewBox", "0 -5 10 10")
-        .attr("refX", 15)
-        .attr("refY", -1.5)
-        .attr("markerWidth", 6)
-        .attr("markerHeight", 6)
-        .attr("orient", "auto")
-        .append("svg:path")
-        .attr("d", "M0,-5L10,0L0,5");
-    */
 
     svgNodes
         .append("circle")
@@ -419,7 +436,7 @@ function redrawSVG() {
 
 function getClassSize(d) {
     // calculate a size based on an nodes class
-    return d.class === 'root' ? 16 : 8;
+    return d.nodetype === 'root' ? 16 : 8;
 }
 
 function tick() {
