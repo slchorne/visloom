@@ -1,5 +1,5 @@
 {
-    "nodes": [
+    "hosts": [
         { "id": "01", "name": "www1", "type": "http", "switch": "s1", "port": "02" },
         { "id": "02", "name": "www2", "type": "http", "switch": "s1", "port": "04" },
         { "id": "03", "name": "www3", "type": "http", "switch": "s1", "port": "06" },

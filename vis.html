@@ -33,6 +33,10 @@ individual node color classes
 var width = 600,
     height = 400;
 
+// scaling functions for the viewport
+var viewX = d3.scale.linear().range([0, width]),
+    viewY = d3.scale.linear().range([height, 0]);
+
 var color = d3.scale.category10();
 
 var force ;
@@ -40,10 +44,14 @@ var svg,
     svgNodes,
     svgLinks;
 
+var jsonData ;
+
+
 // ---------------------------
 // set up input event handlers
 
 var bod = d3.select("body");
+var nextCounter = 0 ;
 bod.on( 'click' , function(e) {
     nextData();
 });
@@ -52,7 +60,52 @@ bod.on( 'keypress' , function(e) {
 });
 
 function nextData() {
-    console.log ( 'click' );
+    console.log ( 'click' , nextCounter );
+
+    var legend = d3.select("text");
+
+    if ( ! nextCounter ) {
+        console.log( "Groups" );
+        legend.text( "Hosts + Groups" );
+
+        // now we index the array and re-compile the links
+        getGroupLinks( jsonData );
+        reindexLinks( jsonData );
+
+        //console.log( jsonData );
+
+        // redraw
+        redrawSVG();
+        nextCounter ++ ;
+    }
+    else if ( nextCounter === 1 ) {
+        // nodes to a switch
+        legend.text( "Hosts + Switches" );
+        console.log( "Switches" );
+
+        getSwitchLinks( jsonData );
+        reindexLinks( jsonData );
+
+        redrawSVG();
+        nextCounter ++ ;
+    }
+
+    else if ( nextCounter === 2 ) {
+        // switch interconnects
+        legend.text( "Switches + Uplinks" );
+        console.log( "uplinks" );
+
+        getSwitchInterconnects( jsonData );
+        reindexLinks( jsonData );
+
+        redrawSVG();
+        nextCounter ++ ;
+    }
+
+
+
+    // [ ] flows
+
 }
 
 // ---------------------------
@@ -69,28 +122,67 @@ d3.json( infile , initData );
 //
 function initData( json ) {
     // called once we load the json
-    //console.log ( "json" , json );
-    //return ;
+    console.log ( "initial json load" );
+    //
 
-    var json = readData( json );
+    jsonData = readData( json );
 
-    if ( json ) {
-        initD3( json );
+    if ( jsonData ) {
+        initD3( jsonData );
     }
 }
 
+function getSwitchInterconnects( json ) {
+
+    // [ ] ADD, we don't reset!!
+    // [ ] I should use an index to refs in the array...
+
+    // add additional links showing the interconnects
+    // [ ] assume the uplink array is preformatted
+    json.links.push.apply( json.links , json.uplinks );
+
+    return 1;
+}
+function getSwitchLinks( json ) {
+
+    // reset the nodes array
+    // [ ] I should use an index to refs in the array...
+
+    json.nodes.length = 0 ;
+    json.nodes.push.apply( json.nodes , json.hosts );
+    json.nodes.push.apply( json.nodes , json.switches );
+
+    // and link hosts to switches
+    json.links.length = 0 ;
+    json.hosts.forEach(function(d, i) {
+        json.links.push({
+            src: d.id,
+            dst: d.switch
+        });
+    });
+
+    console.log ( 'gsl' , json );
+
+    return 1;
+}
+
 function getGroupLinks( json ) {
-    // return an array of links that
-    // connect nodes to their group
-    var glinks = [];
-    json.nodes.forEach(function(d, i) {
-        glinks.push({
+
+    // we can't change where the link array points, so we have to
+    // manipulate it from here
+
+    json.links.length = 0 ;
+
+    // now walk each of the hosts array
+    // and create links to their parent node
+    json.hosts.forEach(function(d, i) {
+        json.links.push({
             src: d.id,
             dst: d.type
         });
     });
 
-    return glinks ;
+    return 1 ;
 }
 
 function getGroupNodes( json ) {
@@ -116,37 +208,30 @@ function readData( json ) {
     }
 
     // compile the json data, 
+    json.nodes = [ ];
+    json.links = [ ];
+
+    // add in some missing data
+    json.switches.forEach(function(d, i) {
+        d.class = 'root';
+    });
     
-    // first get unique categories for each node type
+    // get unique categories for each host type
     json.types = {};
-    json.nodes.forEach(function(d, i) {
+    json.hosts.forEach(function(d, i) {
         json.types[d.type] = d.type ;
     });
 
     // then add them as nodes
+    json.nodes.push.apply( json.nodes , json.hosts );
     json.nodes.push.apply( json.nodes , getGroupNodes(json) );
 
-    // then compile in the links to the groups
-    var gl = getGroupLinks( json );
-    console.log ( "gl" , gl );
 
-    /*
-    // [ ] add the switches as additional nodes in the nodes array
-    json.switches.forEach(function(d, i) {
-        json.nodes.push( d );
-    });
-    */
+    // if you were setting links initially, you'd do it here
+    //getGroupLinks( json );
+    //reindexLinks( json );
 
-    //return ;
-
-    // lastly set up the link array
-    json.links = getGroupLinks( json );
-
-
-    // now we index the array and re-compile the links
-    reindexLinks( json );
-
-    console.log( json );
+    //console.log( json );
 
     return ( json );
 
@@ -218,6 +303,11 @@ function initD3( json ) {
 
     svgNodes = svg.selectAll(".node");
     svgLinks = svg.selectAll(".link");
+
+    svg.append("text")
+        .attr("x", function(d) { return viewX(.05); })
+        .attr("y", function(d) { return viewX(.07); })
+        .text("HOSTS");
 
     //
     // initialise, draw something
