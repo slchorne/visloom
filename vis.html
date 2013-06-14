@@ -26,8 +26,22 @@
 <script>
 
 // ---------------------------
+
+// setup the GLOBALS
+
+var width = 500,
+    height = 500;
+
+var color = d3.scale.category10();
+
+var force ;
+var svg,
+    svgNodes,
+    svgLinks;
+
+// ---------------------------
 // set up an initial dataset...
-var json = {
+var jdata = {
     nodes: [
         { id: "01" , name: 'www1' },
         { id: "02" , name: 'www2' },
@@ -41,24 +55,59 @@ var json = {
     ]
 };
 
-// links can be either ARRAY indexes
-// or vars, which will be refs to an object
-// IF we want to reference links by some other ID:
-//   nodes and links have to be arrays
-//   We go through the 2 datasets and pre-index by
-//   inserting refs to the other elements
+// ---------------------------
+//
+// load a dataset from an AJAX call, thus we have to set up
+// a callback that everything else gets called from
+// (we can't do anything unless we load the json data
+//       d3.json( file , callback() );
+var infile = "loom.json" ;
+d3.json( infile , initData );
 
-var nodeIndex = {};
-json.nodes.forEach(function(d, i) {
-    nodeIndex[d.id] = d;
-});
+//var foo ;
+//initData( jdata );
 
-// now walk the flows array and insert refs to the nodes
-// force.links uses 'd.source' and 'd.target'
-json.flows.forEach(function(d, i) {
-  d.source = nodeIndex[d.src];
-  d.target = nodeIndex[d.dst];
-});
+// ---------------------------
+function initData( json ) {
+    // called once we load the json
+    console.log ( "json" , json );
+    //return ;
+
+    var json = readData( json );
+
+    if ( json ) {
+        initD3( json );
+    }
+}
+
+function readData( json ) {
+    if ( ! json ) {
+        console.warn( "json data is missing" );
+        return ;
+    }
+
+    // links can be either ARRAY indexes
+    // or vars, which will be refs to an object
+    // IF we want to reference links by some other ID:
+    //   nodes and links have to be arrays
+    //   We go through the 2 datasets and pre-index by
+    //   inserting refs to the other elements
+
+    var nodeIndex = {};
+    json.nodes.forEach(function(d, i) {
+        nodeIndex[d.id] = d;
+    });
+
+    // now walk the flows array and insert refs to the nodes
+    // force.links uses 'd.source' and 'd.target'
+    json.flows.forEach(function(d, i) {
+      d.source = nodeIndex[d.src];
+      d.target = nodeIndex[d.dst];
+    });
+
+    return ( json );
+
+}
 
 
 // WARNING:..
@@ -68,58 +117,42 @@ json.flows.forEach(function(d, i) {
 // created and mesed with, so we have to create all these arrays
 // BEFORE we make a call to force.links()
 
+// initD3();
+
 // ---------------------------
 
-// setup the d3 SVG stuff
+function initD3( json ) {
+    // setup the d3 SVG stuff
+    if ( ! json ) {
+        console.warn( "json data is corrupt" );
+        return ;
+    }
 
-var width = 500,
-    height = 500;
+    // warning globals...
+    force = d3.layout.force()
+        // point to the JSON dataset
+        .nodes(json.nodes)
+        .links(json.flows)
+        .charge(-400)
+        .linkDistance(120)
+        .size([width, height])
+        // the tick method creates the layout, so it needs to return the
+        // nodes and link info, see below
+        .on("tick", tick);
 
-var color = d3.scale.category10();
+    svg = d3.select("body").append("svg")
+        .attr("width", width)
+        .attr("height", height);
 
-var nodeList = [],
-    linkList = [];
-
-var force = d3.layout.force()
-    // point to the JSON dataset
-    .nodes(json.nodes)
-    .links(json.flows)
-    .charge(-400)
-    .linkDistance(120)
-    .size([width, height])
-    // the tick method creates the layout, so it needs to return the
-    // nodes and link info, see below
-    .on("tick", tick);
-
-var svg = d3.select("body").append("svg")
-    .attr("width", width)
-    .attr("height", height);
-
-var svgNodes = svg.selectAll(".node"),
+    svgNodes = svg.selectAll(".node");
     svgLinks = svg.selectAll(".link");
 
+    //
+    // initialise, draw something
+    //
 
-// Try animating a node by adding something after 3 secs
-setTimeout(function() {
-    console.log ("add a node\n");
-    json.nodes.push( { id: "foo" } );
-    //links.push({source: a, target: b}, {source: b, target: c});
-    start();
-}, 3000);
-
-// clear the list...
-setTimeout(function() {
-    console.log ("clear all a node\n");
-    json.nodes.length = 0 ;
-    //json.nodes = [];
-    //links.push({source: a, target: b}, {source: b, target: c});
-    start();
-}, 6000);
-
-//
-// initialise, draw something
-//
-start();
+    redrawSVG();
+}
 
 //-------------------
 
@@ -128,7 +161,7 @@ start();
 //console.log ( "ll" , linkList );
 
 // here is the guts of the operation
-function start() {
+function redrawSVG() {
 
     svgLinks = svgLinks.data(force.links(), 
         // this is a function that will return a REF to the object
@@ -168,6 +201,27 @@ function tick() {
       .attr("y1", function(d) { return d.source.y; })
       .attr("x2", function(d) { return d.target.x; })
       .attr("y2", function(d) { return d.target.y; });
+}
+
+function animate() {
+
+    // Try animating a node by adding something after 3 secs
+    setTimeout(function() {
+        console.log ("add a node\n");
+        json.nodes.push( { id: "foo" } );
+        //links.push({source: a, target: b}, {source: b, target: c});
+        redrawSVG();
+    }, 3000);
+
+    // clear the list...
+    setTimeout(function() {
+        console.log ("clear all a node\n");
+        json.nodes.length = 0 ;
+        //json.nodes = [];
+        //links.push({source: a, target: b}, {source: b, target: c});
+        redrawSVG();
+    }, 6000);
+
 }
 
 </script>

@@ -1,14 +1,14 @@
 {
-    nodes: [
-        { id: "01" , name: 'www1', type: "http", switch: "01", port: "02" },
-        { id: "02" , name: 'www2', type: "http", switch: "01", port: "04" },
-        { id: "03" , name: 'www3', type: "http", switch: "01", port: "06" },
-        { id: "04" , name: 'www4', type: "http", switch: "02", port: "05" }
+    "nodes": [
+        { "id": "01", "name": "www1", "type": "http", "switch": "01", "port": "02" },
+        { "id": "02", "name": "www2", "type": "http", "switch": "01", "port": "04" },
+        { "id": "03", "name": "www3", "type": "http", "switch": "01", "port": "06" },
+        { "id": "04", "name": "www4", "type": "http", "switch": "02", "port": "05" }
     ],
-    flows: [
-        { src: "01", dst: "02", ts: "2013-02-02" },
-        { src: "01", dst: "03", ts: "2013-02-02" },
-        { src: "01", dst: "04", ts: "2013-02-02" }
+    "flows": [
+        { "src": "01", "dst": "02", "ts": "2013-02-02" },
+        { "src": "01", "dst": "03", "ts": "2013-02-02" },
+        { "src": "01", "dst": "04", "ts": "2013-02-02" }
     ]
-};
+}
 
