@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.link {
+  stroke: #000;
+  stroke-width: 1.5px;
+}
+
+.node {
+  fill: #000;
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+
+/*
+// individual node color
+.node.a { fill: #1f77b4; }
+.node.b { fill: #ff7f0e; }
+.node.c { fill: #2ca02c; }
+*/
+
+</style>
+<body>
+<script src="d3/d3.v3.min.js"></script>
+<script>
+
+// ---------------------------
+// set up an initial dataset...
+var json = {
+    nodes: [
+        { id: "01" , name: 'www1' },
+        { id: "02" , name: 'www2' },
+        { id: "03" , name: 'www3' },
+        { id: "04" , name: 'www4' }
+    ],
+    links: [
+        { src: "01" , dst: "02" },
+        { src: "01" , dst: "03" },
+        { src: "01" , dst: "04" }
+    ]
+};
+
+// links can be either ARRAY indexes
+// or vars, which will be refs to an object
+// IF we want to reference links by some other ID:
+//   nodes and links have to be arrays
+//   We go through the 2 datasets and pre-index by
+//   inserting refs to the other elements
+
+var nodeIndex = {};
+json.nodes.forEach(function(d, i) {
+    nodeIndex[d.id] = d;
+});
+
+// now walk the links array and insert refs to the nodes
+// force.links uses 'd.source' and 'd.target'
+json.links.forEach(function(d, i) {
+  d.source = nodeIndex[d.src];
+  d.target = nodeIndex[d.dst];
+});
+
+
+// WARNING:..
+
+// there is a problem here involving REFS, once you make a call to 
+// d3.layout.force() all sorts of REFS to the links and nodes list get
+// created and mesed with, so we have to create all these arrays
+// BEFORE we make a call to force.links()
+
+// ---------------------------
+
+// setup the d3 SVG stuff
+
+var width = 500,
+    height = 500;
+
+var color = d3.scale.category10();
+
+var nodeList = [],
+    linkList = [];
+
+var force = d3.layout.force()
+    // point to the JSON dataset
+    .nodes(json.nodes)
+    .links(json.links)
+    .charge(-400)
+    .linkDistance(120)
+    .size([width, height])
+    // the tick method creates the layout, so it needs to return the
+    // nodes and link info, see below
+    .on("tick", tick);
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+var svgNodes = svg.selectAll(".node"),
+    svgLinks = svg.selectAll(".link");
+
+// 1. Add three nodes and three links.
+/*
+setTimeout(function() {
+  var a = {id: "a"}, b = {id: "b"}, c = {id: "c"};
+  nodes.push(a, b, c);
+  links.push({source: a, target: b}, 
+            {source: a, target: c}, 
+            {source: b, target: c});
+  start();
+}, 0);
+*/
+
+/*
+nodeList = json.nodes;
+*/
+
+// set up an initial dataset
+var a = {id: "a"}, b = {id: "b"}, c = {id: "c"}, d = {id: "d"};
+nodeList.push(a, b, c, d);
+
+/*
+*/
+  linkList.push(
+    {source: 0, target: 1}
+  );
+
+  start();
+
+// and now we have Links[] and Nodes[] ready for use by D3::force...
+//linkList = json.links;
+//console.log ( "ll" , linkList );
+
+// here is the guts of the operation
+function start() {
+  svgLinks = svgLinks.data(force.links(), 
+    // this is a function that will return a REF to the object
+    //function(d){} );
+    function(d) { 
+        console.log ( "force.links" , d );
+        return d.source.id + "-" + d.target.id; });
+
+  svgLinks.enter().insert("line", ".node").attr("class", "link");
+  svgLinks.exit().remove();
+
+  svgNodes = svgNodes.data(force.nodes(), function(d) { return d.id;});
+
+  svgNodes.enter().
+        append("circle").
+        attr("class", function(d) { 
+            return "node " + d.id; }).attr("r", 8);
+
+    /*
+    svgNodes.append("title")
+        .text(function(d) { return d.id; });
+        */
+
+  svgNodes.exit().remove();
+
+  force.start();
+}
+
+function tick() {
+  svgNodes.attr("cx", function(d) { return d.x; })
+      .attr("cy", function(d) { return d.y; })
+
+  svgLinks.attr("x1", function(d) { return d.source.x; })
+      .attr("y1", function(d) { return d.source.y; })
+      .attr("x2", function(d) { return d.target.x; })
+      .attr("y2", function(d) { return d.target.y; });
+}
+
+</script>
+
+</body>
+</html>

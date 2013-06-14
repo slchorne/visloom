@@ -1,0 +1,31 @@
+Thu Jun 13 14:58:45 PDT 2013
+
+Visualise network flows
+
+[ ] force directed
+    http://bl.ocks.org/mbostock/4062045
+
+[ ] fisheye distortion
+    http://bost.ocks.org/mike/fisheye/
+
+[ ] Flare ? if collapsable
+    http://mbostock.github.io/d3/talk/20111018/tree.html
+    http://bl.ocks.org/mbostock/4063570
+
+[ ] sankey for flows
+[ ] Chord diagram for flows ?
+    http://bost.ocks.org/mike/uberdata/
+
+[x] define a data structure
+
+[ ] show entities by type (www, ftp, etc)
+    [ ] show nodes attached to a type object
+
+[ ] show entities by switch 
+    [ ] animate between thie and the by-type view
+    [ ] show nodes attached to a switch
+    [ ] show interconnect betwen switches
+
+[ ] show flows between notes
+    [ ] show the flow table
+
