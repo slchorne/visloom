@@ -14,6 +14,12 @@
 }
 
 /*
+text {
+  font: 10px sans-serif;
+}
+*/
+
+/*
 individual node color classes
 */
 .node.host { fill: #1f77b4; }
@@ -340,9 +346,15 @@ function redrawSVG() {
     //
     svgNodes = svgNodes.data(force.nodes(), function(d) { return d.id;});
 
-    svgNodes.enter().
-        append("circle").
-        attr("class", function(d) { 
+    /*
+    svgNodes.enter()
+        .append("g")
+        .attr("class","node");
+    */
+
+    svgNodes.enter()
+        .append("circle")
+        .attr("class", function(d) { 
             //return "node " + d.id; })
             return "node " + d.type; })
             //return "node host"; })
@@ -352,9 +364,21 @@ function redrawSVG() {
             return d.class === 'root' ? 16 : 8});
 
         /*
-        svgNodes.append("title")
-            .text(function(d) { return d.id; });
+            for mousoevers append("title")
         */
+    console.log ( "append Text" );
+
+        /*
+        */
+    svgNodes
+        .append("text")
+            .attr("dx", "8")
+            //.attr("dy", "3")
+            .style("text-anchor", "middle")
+            .text(function(d) { 
+                return "foo"; });
+                //return d.id; });
+
 
     svgNodes.exit().remove();
 
@@ -364,32 +388,13 @@ function redrawSVG() {
 function tick() {
   svgNodes.attr("cx", function(d) { return d.x; })
       .attr("cy", function(d) { return d.y; })
+      //.attr("x", function(d) { return d.x; })
+      //.attr("y", function(d) { return d.y; })
 
   svgLinks.attr("x1", function(d) { return d.source.x; })
       .attr("y1", function(d) { return d.source.y; })
       .attr("x2", function(d) { return d.target.x; })
       .attr("y2", function(d) { return d.target.y; });
-}
-
-function animate() {
-
-    // Try animating a node by adding something after 3 secs
-    setTimeout(function() {
-        console.log ("add a node\n");
-        json.nodes.push( { id: "foo" } );
-        //links.push({source: a, target: b}, {source: b, target: c});
-        redrawSVG();
-    }, 3000);
-
-    // clear the list...
-    setTimeout(function() {
-        console.log ("clear all a node\n");
-        json.nodes.length = 0 ;
-        //json.nodes = [];
-        //links.push({source: a, target: b}, {source: b, target: c});
-        redrawSVG();
-    }, 6000);
-
 }
 
 </script>
