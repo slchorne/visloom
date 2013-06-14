@@ -1,9 +1,20 @@
 {
     "nodes": [
-        { "id": "01", "name": "www1", "type": "http", "switch": "01", "port": "02" },
-        { "id": "02", "name": "www2", "type": "http", "switch": "01", "port": "04" },
-        { "id": "03", "name": "www3", "type": "http", "switch": "01", "port": "06" },
-        { "id": "04", "name": "www4", "type": "http", "switch": "02", "port": "05" }
+        { "id": "01", "name": "www1", "type": "http", "switch": "s1", "port": "02" },
+        { "id": "02", "name": "www2", "type": "http", "switch": "s1", "port": "04" },
+        { "id": "03", "name": "www3", "type": "http", "switch": "s1", "port": "06" },
+        { "id": "04", "name": "www4", "type": "http", "switch": "s2", "port": "05" },
+        { "id": "55", "name": "voIP5", "type": "VoIP", "switch": "s3", "port": "10" },
+        { "id": "a", "name": "voIP6", "type": "VoIP", "switch": "s3", "port": "10" }
+    ],
+    "switches": [
+        { "id": "s1", "name": "Switch1", "type": "switch" },
+        { "id": "s2", "name": "Switch1", "type": "switch" },
+        { "id": "s3", "name": "Switch1", "type": "switch" }
+    ],
+    "uplinks": [
+        { "src": "s1", "dst": "s2", "ts": "2013-02-02" },
+        { "src": "s1", "dst": "s3", "ts": "2013-02-02" }
     ],
     "flows": [
         { "src": "01", "dst": "02", "ts": "2013-02-02" },
