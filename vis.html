@@ -34,7 +34,7 @@ var json = {
         { id: "03" , name: 'www3' },
         { id: "04" , name: 'www4' }
     ],
-    links: [
+    flows: [
         { src: "01" , dst: "02" },
         { src: "01" , dst: "03" },
         { src: "01" , dst: "04" }
@@ -53,9 +53,9 @@ json.nodes.forEach(function(d, i) {
     nodeIndex[d.id] = d;
 });
 
-// now walk the links array and insert refs to the nodes
+// now walk the flows array and insert refs to the nodes
 // force.links uses 'd.source' and 'd.target'
-json.links.forEach(function(d, i) {
+json.flows.forEach(function(d, i) {
   d.source = nodeIndex[d.src];
   d.target = nodeIndex[d.dst];
 });
@@ -83,7 +83,7 @@ var nodeList = [],
 var force = d3.layout.force()
     // point to the JSON dataset
     .nodes(json.nodes)
-    .links(json.links)
+    .links(json.flows)
     .charge(-400)
     .linkDistance(120)
     .size([width, height])
@@ -98,33 +98,30 @@ var svg = d3.select("body").append("svg")
 var svgNodes = svg.selectAll(".node"),
     svgLinks = svg.selectAll(".link");
 
-// 1. Add three nodes and three links.
-/*
+
+// Try animating a node by adding something after 3 secs
 setTimeout(function() {
-  var a = {id: "a"}, b = {id: "b"}, c = {id: "c"};
-  nodes.push(a, b, c);
-  links.push({source: a, target: b}, 
-            {source: a, target: c}, 
-            {source: b, target: c});
-  start();
-}, 0);
-*/
+    console.log ("add a node\n");
+    json.nodes.push( { id: "foo" } );
+    //links.push({source: a, target: b}, {source: b, target: c});
+    start();
+}, 3000);
 
-/*
-nodeList = json.nodes;
-*/
+// clear the list...
+setTimeout(function() {
+    console.log ("clear all a node\n");
+    json.nodes.length = 0 ;
+    //json.nodes = [];
+    //links.push({source: a, target: b}, {source: b, target: c});
+    start();
+}, 6000);
 
-// set up an initial dataset
-var a = {id: "a"}, b = {id: "b"}, c = {id: "c"}, d = {id: "d"};
-nodeList.push(a, b, c, d);
+//
+// initialise, draw something
+//
+start();
 
-/*
-*/
-  linkList.push(
-    {source: 0, target: 1}
-  );
-
-  start();
+//-------------------
 
 // and now we have Links[] and Nodes[] ready for use by D3::force...
 //linkList = json.links;
@@ -132,31 +129,35 @@ nodeList.push(a, b, c, d);
 
 // here is the guts of the operation
 function start() {
-  svgLinks = svgLinks.data(force.links(), 
-    // this is a function that will return a REF to the object
-    //function(d){} );
-    function(d) { 
-        console.log ( "force.links" , d );
-        return d.source.id + "-" + d.target.id; });
 
-  svgLinks.enter().insert("line", ".node").attr("class", "link");
-  svgLinks.exit().remove();
+    svgLinks = svgLinks.data(force.links(), 
+        // this is a function that will return a REF to the object
+        //function(d){} );
+        function(d) { 
+            return d.source.id + "-" + d.target.id; }
+        );
 
-  svgNodes = svgNodes.data(force.nodes(), function(d) { return d.id;});
+   
+    // set up enter and exit rules
+    svgLinks.enter().insert("line", ".node").attr("class", "link");
+    svgLinks.exit().remove();
 
-  svgNodes.enter().
+    //
+    svgNodes = svgNodes.data(force.nodes(), function(d) { return d.id;});
+
+    svgNodes.enter().
         append("circle").
         attr("class", function(d) { 
             return "node " + d.id; }).attr("r", 8);
 
-    /*
-    svgNodes.append("title")
-        .text(function(d) { return d.id; });
+        /*
+        svgNodes.append("title")
+            .text(function(d) { return d.id; });
         */
 
-  svgNodes.exit().remove();
+    svgNodes.exit().remove();
 
-  force.start();
+    force.start();
 }
 
 function tick() {
