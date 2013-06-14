@@ -13,11 +13,11 @@
   stroke-width: 1.5px;
 }
 
-/*
-text {
-  font: 10px sans-serif;
+.nodelabel {
+    stroke: #000;
+    stroke-width: 0.5px;
+    text-anchor: "middle";
 }
-*/
 
 /*
 individual node color classes
@@ -107,6 +107,16 @@ function nextData() {
         redrawSVG();
         nextCounter ++ ;
     }
+    else {
+        // loop/reset
+        console.log( "reset" );
+
+        getHostsOnly( jsonData );
+        reindexLinks( jsonData );
+
+        redrawSVG();
+        nextCounter = 0 ;
+    }
 
 
 
@@ -167,7 +177,17 @@ function getSwitchLinks( json ) {
         });
     });
 
-    console.log ( 'gsl' , json );
+    //console.log ( 'gsl' , json );
+
+    return 1;
+}
+
+function getHostsOnly( json ) {
+    // reset the data
+    json.nodes.length = 0 ;
+    json.links.length = 0 ;
+
+    json.nodes.push.apply( json.nodes , json.hosts );
 
     return 1;
 }
@@ -177,7 +197,12 @@ function getGroupLinks( json ) {
     // we can't change where the link array points, so we have to
     // manipulate it from here
 
+    // reset the data
+    json.nodes.length = 0 ;
     json.links.length = 0 ;
+
+    json.nodes.push.apply( json.nodes , json.hosts );
+    json.nodes.push.apply( json.nodes , getGroupNodes(json) );
 
     // now walk each of the hosts array
     // and create links to their parent node
@@ -230,7 +255,7 @@ function readData( json ) {
 
     // then add them as nodes
     json.nodes.push.apply( json.nodes , json.hosts );
-    json.nodes.push.apply( json.nodes , getGroupNodes(json) );
+    //json.nodes.push.apply( json.nodes , getGroupNodes(json) );
 
 
     // if you were setting links initially, you'd do it here
@@ -307,13 +332,13 @@ function initD3( json ) {
         .attr("width", width)
         .attr("height", height);
 
-    svgNodes = svg.selectAll(".node");
-    svgLinks = svg.selectAll(".link");
-
     svg.append("text")
         .attr("x", function(d) { return viewX(.05); })
         .attr("y", function(d) { return viewX(.07); })
         .text("HOSTS");
+
+    svgNodes = svg.selectAll(".node");
+    svgLinks = svg.selectAll(".link");
 
     //
     // initialise, draw something
@@ -343,41 +368,36 @@ function redrawSVG() {
     svgLinks.enter().insert("line", ".node").attr("class", "link");
     svgLinks.exit().remove();
 
-    //
+    // set the data for the list of nodes
     svgNodes = svgNodes.data(force.nodes(), function(d) { return d.id;});
 
+    // hang everything off a 'g.node'
     /*
+    */
     svgNodes.enter()
         .append("g")
-        .attr("class","node");
-    */
+        .attr("class","node")
+        .call(force.drag)
 
-    svgNodes.enter()
+    svgNodes
         .append("circle")
         .attr("class", function(d) { 
-            //return "node " + d.id; })
             return "node " + d.type; })
-            //return "node host"; })
-
-        //.attr("r", 8);
         .attr("r", function(d) {
-            return d.class === 'root' ? 16 : 8});
+            return getClassSize(d) });
 
         /*
             for mousoevers append("title")
         */
-    console.log ( "append Text" );
-
-        /*
-        */
     svgNodes
         .append("text")
-            .attr("dx", "8")
-            //.attr("dy", "3")
-            .style("text-anchor", "middle")
+            // offset
+            .attr("dx", function(d) {
+                return getClassSize(d) + 4 })
+            .attr("class","nodelabel")
             .text(function(d) { 
-                return "foo"; });
-                //return d.id; });
+                //return "foo"; });
+                return d.name; });
 
 
     svgNodes.exit().remove();
@@ -385,16 +405,29 @@ function redrawSVG() {
     force.start();
 }
 
-function tick() {
-  svgNodes.attr("cx", function(d) { return d.x; })
-      .attr("cy", function(d) { return d.y; })
-      //.attr("x", function(d) { return d.x; })
-      //.attr("y", function(d) { return d.y; })
+function getClassSize(d) {
+    // calculate a size based on an nodes class
+    return d.class === 'root' ? 16 : 8;
+}
 
-  svgLinks.attr("x1", function(d) { return d.source.x; })
-      .attr("y1", function(d) { return d.source.y; })
-      .attr("x2", function(d) { return d.target.x; })
-      .attr("y2", function(d) { return d.target.y; });
+function tick() {
+    // since we now have a parent 'g' object on the circle
+    // we use the transform() to move things around
+
+    svgNodes
+        .attr("transform", function(d) { 
+            return "translate(" + d.x + "," + d.y + ")"; });
+
+    /*
+    svgNodes.attr("cx", function(d) { return d.x; })
+        .attr("cy", function(d) { return d.y; })
+      */
+
+    svgLinks
+        .attr("x1", function(d) { return d.source.x; })
+        .attr("y1", function(d) { return d.source.y; })
+        .attr("x2", function(d) { return d.target.x; })
+        .attr("y2", function(d) { return d.target.y; });
 }
 
 </script>

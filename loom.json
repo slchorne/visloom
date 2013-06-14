@@ -9,8 +9,8 @@
     ],
     "switches": [
         { "id": "s1", "name": "Switch1", "type": "switch" },
-        { "id": "s2", "name": "Switch1", "type": "switch" },
-        { "id": "s3", "name": "Switch1", "type": "switch" }
+        { "id": "s2", "name": "Switch2", "type": "switch" },
+        { "id": "s3", "name": "Switch3", "type": "switch" }
     ],
     "uplinks": [
         { "src": "s1", "dst": "s2", "ts": "2013-02-02" },
