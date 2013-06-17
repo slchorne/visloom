@@ -5,14 +5,24 @@ Visualise network flows
 [x] force directed
     http://bl.ocks.org/mbostock/4062045
 
-[ ] summarise data when the node count gets too high
-    [ ] stop at 30-40
+[ ] still need a table view
 
-    [ ] types, #of nodes
+[ ] need a ui for datapaths
+    [ ] the logical L2 connectivity
+    [ ] the logical mesh that may not be HW dependent
 
-    [ ] zoom re-draws the graph accordingly
+[ ] upload to git
 
-    [ ] switch view, culls the nodes
+[ ] reload the data every N seconds
+    [ ] push updates remotely
+    [ ] track the current display state
+    [ ] call a redraw/index based on state
+    [ ] enum variables ?
+
+[x] summarise data when the node count gets too high
+    [x] stop at 30-40
+    [x] types, #of nodes
+    [x] switch view, culls the nodes
 
 [x] show flows between notes
     [ ] show the flow table
