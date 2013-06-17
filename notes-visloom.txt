@@ -5,13 +5,16 @@ Visualise network flows
 [x] force directed
     http://bl.ocks.org/mbostock/4062045
 
+[x] upload to git
+
 [ ] still need a table view
 
 [ ] need a ui for datapaths
     [ ] the logical L2 connectivity
     [ ] the logical mesh that may not be HW dependent
 
-[ ] upload to git
+[ ] find a game deisgner of they are interested
+    [ ] move from games to industrial design
 
 [ ] reload the data every N seconds
     [ ] push updates remotely
@@ -19,10 +22,21 @@ Visualise network flows
     [ ] call a redraw/index based on state
     [ ] enum variables ?
 
+    [ ] dynamically scale the data based on the node count
+        [ ] user confogurable max node count
+
+[ ] search bar 
+
+[ ] event handlers on the circles
+    [ ] what do we pop
+
 [x] summarise data when the node count gets too high
     [x] stop at 30-40
     [x] types, #of nodes
     [x] switch view, culls the nodes
+
+[ ] need to visualise the distribution of the LOOM and OF controller
+    systems as well 
 
 [x] show flows between notes
     [ ] show the flow table
