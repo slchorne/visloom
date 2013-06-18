@@ -1,4 +1,9 @@
 // ---------------------------
+/*
+    [ ] change the convergence and iterations
+
+*/
+// ---------------------------
 
 // setup the GLOBALS
 
@@ -24,6 +29,7 @@ var jsonData ;
 // view object for better handling of globals
 var myGraph = {
 
+    // variables
     // we use methods here to modify the nodex|links lists
     // so we never lose the original ref to these arrays
     nodes: [],
@@ -33,17 +39,30 @@ var myGraph = {
     svgView:{},
 
     // scaling function for the viewport
+    // [ ] where to set width
     viewX: d3.scale.linear().range([0, width]),
     viewY: d3.scale.linear().range([height, 0]),
 
     color: d3.scale.category10(),
 
+    // methods
+    getView: function(){ 
+        return this.svgView 
+    },
+    setView: function( v ){
+        this.svgView = v;
+    },
+
     init: function(){
         if ( this.isInitialised ) {
             return ;
         }
-
         this.isInitialised = 1 ;
+
+        // deal with namespace popping
+        var myG = this ;
+
+        console.log ( "mygraph init" );
 
         this.d3Layout = d3.layout.force()
             // point to the JSON dataset
@@ -65,24 +84,34 @@ var myGraph = {
         */
             
 
-        this.svgView.svg = d3.select("body").append("svg")
+        var lsvg = d3.select("body").append("svg")
             .attr("width", width)
             .attr("height", height);
 
-        this.svgView.svg.append("text")
-            .attr("x", function(d) { return this.viewX(.05); })
-            .attr("y", function(d) { return this.viewX(.07); })
+        lsvg.append("text")
+            .attr("x", function(d) { return myG.viewX(.05); })
+            .attr("y", function(d) { return myG.viewX(.07); })
             .text("Hosts");
 
-        this.svgView.svgNodes = svg.selectAll(".node");
-        this.svgView.svgLinks = svg.selectAll(".link");
+        lnodes = lsvg.selectAll(".node");
+        llinks = lsvg.selectAll(".link");
+
+        this.setView({
+            svg: lsvg,
+            links: llinks,
+            nodes: lnodes
+        });
 
     },
 
     redraw: function(){
+
+        console.log ( "mygraph redraw" );
+        console.log ( this.nodes );
+
         // redraw the graph based on our data
-        var slinks = this.svgView.svgLinks;
-        var snodes = this.svgView.svgNodes;
+        var snodes = this.getView().nodes; 
+        var slinks = this.getView().links; 
 
         slinks = slinks.data(this.d3Layout.links(), 
             // this is a function that will return a REF to the object
@@ -113,7 +142,8 @@ var myGraph = {
         */
 
         // set the data for the list of nodes
-        snodes = snodes.data(this.d3Layout.nodes(), function(d) { return d.id;});
+        snodes = snodes.data(this.d3Layout.nodes(), 
+            function(d) { return d.id;});
 
         // hang everything off a 'g.node'
         /*
@@ -143,23 +173,33 @@ var myGraph = {
 
         snodes.exit().remove();
 
+        // we've moved where this ref points to,
+        // so we need to update it 
+        myGraph.getView().nodes = snodes ;
+        myGraph.getView().links = snodes ;
+
         this.d3Layout.start();
     },
 
-    // ref to the graph type and object
-
-    setNodes: function(){
+    // helper methods
+    setNodes: function(n){
         this.nodes.length = 0 ;
+        this.nodes.push.apply( this.nodes , n );
+
         // [ ] do we need to reindex ?
-        this.reindexLinks();
+        //this.reindexLinks();
     },
     addNodes: function(){
         //adding nodes should not require reindexing the links
     },
 
-    setLinks: function() {
+    setLinks: function(l) {
         this.links.length = 0 ;
-        reindexLinks();
+        this.links.push.apply( this.links , l );
+
+        // [ ] we should call reindex here
+        //reindexLinks();
+
     },
     addLinks: function(){
         // just add a link array, but don't index
@@ -174,8 +214,6 @@ var myGraph = {
     reindexLinks: function(){
         // recalc ALL the links
     }
-
-
 };
 
 // ---------------------------
@@ -300,7 +338,20 @@ function initData( json ) {
     jsonData = readData( json );
 
     if ( jsonData ) {
+        /*
+        myGraph.init();
+        myGraph.setNodes( jsonData.hosts );
+        // [ ] redraw is coming up empty? why?
+        myGraph.redraw();
+        */
+
         initD3( jsonData );
+
+        //
+        // initialise, draw something
+        //
+        redrawSVG();
+
     }
 }
 
@@ -416,7 +467,7 @@ function getSwitchLinks( json ) {
 }
 
 function getGroupLinks( json ) {
-    // list the host gropus and link all VISIBLE hosts
+    // list the host groups and link all VISIBLE hosts
     // to the groups
 
     // we can't change where the link array points, so we have to
@@ -570,19 +621,22 @@ function reindexLinks( json ) {
 // created and mesed with, so we have to create all these arrays
 // BEFORE we make a call to force.links()
 
+// initD3();
+
 // ---------------------------
 
 function initD3( json ) {
     // setup the d3 SVG stuff
-
-    // [ ] this is only called once on script startup,
-    // but it requires an empty json dataset, which has pointer reset 
-    // issues
-
     if ( ! json ) {
         console.warn( "json data is corrupt" );
         return ;
     }
+
+    myGraph.init();
+    myGraph.setNodes( json.nodes );
+    myGraph.setLinks( json.links );
+
+    return ;
 
     // warning globals...
 
@@ -618,11 +672,12 @@ function initD3( json ) {
     svgNodes = svg.selectAll(".node");
     svgLinks = svg.selectAll(".link");
 
-    //
-    // initialise, draw something
-    //
+    myGraph.setView({
+        view: svg,
+        nodes: svgNodes,
+        links: svgLinks
+    });
 
-    redrawSVG();
 }
 
 //-------------------
@@ -631,6 +686,14 @@ function initD3( json ) {
 
 // here is the guts of the operation
 function redrawSVG() {
+
+    console.log ( "redraw SVG" );
+    //myGraph.redraw();
+    //return ;
+
+    var svgLinks = myGraph.getView().links;
+    var svgNodes = myGraph.getView().nodes;
+    var force = myGraph.d3Layout;
 
     svgLinks = svgLinks.data(force.links(), 
         // this is a function that will return a REF to the object
@@ -694,6 +757,11 @@ function redrawSVG() {
 
     svgNodes.exit().remove();
 
+    // we've moved where this ref points to,
+    // so we need to update it 
+    myGraph.getView().nodes = svgNodes ;
+    myGraph.getView().links = svgLinks ;
+
     force.start();
 }
 
@@ -703,9 +771,15 @@ function getClassSize(d) {
 }
 
 function tick() {
+    // tick switches to it's own namespace, so we have to
+    // find a way to get to the veriables we require
+    // without reverting to a global namesspace
+
+    var v = myGraph.getView();
+
     // since we now have a parent 'g' object on the circle
     // we use the transform() to move things around
-    svgNodes
+    v.nodes
         .attr("transform", function(d) { 
             return "translate(" + d.x + "," + d.y + ")"; });
 
@@ -714,9 +788,14 @@ function tick() {
         .attr("cy", function(d) { return d.y; })
       */
 
-    svgLinks
+    /*
+    */
+
+    // [ ] uncomment this!!!
+    v.links
         .attr("x1", function(d) { return d.source.x; })
         .attr("y1", function(d) { return d.source.y; })
         .attr("x2", function(d) { return d.target.x; })
         .attr("y2", function(d) { return d.target.y; });
+
 }
