@@ -8,6 +8,7 @@
 // setup the GLOBALS
 
 var MAXNODES = 30 ;
+var jsonData ;
 
 var width = 600,
     height = 400;
@@ -19,12 +20,117 @@ var viewX = d3.scale.linear().range([0, width]),
 var color = d3.scale.category10();
 
 var force ;
+
+/*
+*/
+
 var svg,
     svgNodes,
     svgLinks;
 
-var jsonData ;
+// ---------------------------
+var myController = {
+    // state handler for the various draw modes
+    update: function() {
 
+        myGraph.init();
+        myGraph.setNodes( jsonData.nodes );
+
+        myGraph.addNodes( this.getGroupNodes( jsonData ) );
+
+        myGraph.setLinks( this.getGroupLinks( jsonData ) );
+
+        //
+        // initialise, draw something
+        //
+        redrawSVG();
+
+    },
+
+    // --------------------------
+    // model functions, these should be part of the json model
+    indexHostTypes: function( json ) {
+        // generate an index of all the unique host types
+        // [ ] this should be part of the json model
+        json.types = {};
+        json.hosts.forEach(function(d, i) {
+            if ( ! json.types[d.type] ) {
+                json.types[d.type] = 1;
+            }
+            else {
+                json.types[d.type]++ ;
+            }
+        });
+        return 1 ;
+    },
+
+    getGroupNodes: function( json ) {
+        // return an array of nodes that are the unique groups
+        var gnodes = [] ;
+        // then add them as nodes
+        Object.keys(json.types).forEach(function(k, i) {
+            gnodes.push({
+                id: k,
+                name: k + " - " + json.types[k],
+                type: k,
+                nodetype: 'root'
+            });
+        });
+
+        return gnodes ;
+    },
+
+    getGroupLinks: function( json ) {
+        // return an array of links from a host to their group
+        var glinks = [ ];
+
+        // now walk each of the hosts array
+        // and create links to their parent node
+        if ( json.hosts.length < MAXNODES ) {
+
+            json.hosts.forEach(function(d, i) {
+                glinks.push({
+                    src: d.id,
+                    dst: d.type
+                });
+            });
+
+        }
+
+        return glinks ;
+    },
+
+    // --------------------------
+
+    setNodesToHosts: function( json ) {
+        console.log ( "Setting nodes to hosts");
+
+        // [ ] why do we do this here???
+        this.indexHostTypes( json );  
+
+        if ( json.hosts.length < MAXNODES ) {
+            myGraph.setNodes( json.hosts );
+        }
+        else {
+            myGraph.setNodes({
+                "id": "summ", 
+                "name": json.hosts.length + " hosts",
+                "type": "summary", 
+                 "ovs": ""
+            });
+        }
+
+        return 1;
+    },
+
+    setNodestoHostandGroups: function( json ) {
+        console.log ( "Setting nodes to hosts and Groups");
+        this.setNodesToHosts(json);
+    }
+
+};
+
+// ---------------------------
 // ---------------------------
 // view object for better handling of globals
 var myGraph = {
@@ -34,6 +140,8 @@ var myGraph = {
     // so we never lose the original ref to these arrays
     nodes: [],
     links: [],
+
+    nodeIndex: { f: 'aa' },
     isInitialised: 0,
     d3Layout: {},
     svgView:{},
@@ -106,12 +214,51 @@ var myGraph = {
 
     redraw: function(){
 
-        console.log ( "mygraph redraw" );
-        console.log ( this.nodes );
+        console.log ( "mygraph redraw", myGraph );
 
         // redraw the graph based on our data
         var snodes = this.getView().nodes; 
         var slinks = this.getView().links; 
+
+        var svgLinks = this.getView().links;
+
+        // set the data for the list of nodes
+        snodes = snodes.data(this.d3Layout.nodes(), 
+            function(d) { return d.id;});
+
+        // hang everything off a 'g.node'
+        snodes.enter()
+            .append("g")
+            .attr("class","node")
+            .call(this.d3Layout.drag)
+
+        snodes
+            .append("circle")
+            .attr("class", function(d) { 
+                return "node " + d.type; })
+            .attr("r", function(d) {
+                return getClassSize(d) });
+
+        snodes
+            .append("text")
+                // offset
+                .attr("dx", function(d) {
+                    return getClassSize(d) + 4 })
+                .attr("class","nodelabel")
+                .text(function(d) { 
+                    //return "foo"; });
+                    return d.name; });
+
+        snodes.exit().remove();
+
+        myGraph.getView().nodes = snodes ;
+
+    //--------------
+
+        return ;
+
+    //--------------
+
 
         slinks = slinks.data(this.d3Layout.links(), 
             // this is a function that will return a REF to the object
@@ -141,41 +288,8 @@ var myGraph = {
             .attr("d", "M0,-5L10,0L0,5");
         */
 
-        // set the data for the list of nodes
-        snodes = snodes.data(this.d3Layout.nodes(), 
-            function(d) { return d.id;});
-
-        // hang everything off a 'g.node'
-        /*
-        */
-        snodes.enter()
-            .append("g")
-            .attr("class","node")
-            .call(this.d3Layout.drag)
-
-        snodes
-            .append("circle")
-            .attr("class", function(d) { 
-                return "node " + d.type; })
-            .attr("r", function(d) {
-                return getClassSize(d) });
-
-        snodes
-            .append("text")
-                // offset
-                .attr("dx", function(d) {
-                    return getClassSize(d) + 4 })
-                .attr("class","nodelabel")
-                .text(function(d) { 
-                    //return "foo"; });
-                    return d.name; });
-
-
-        snodes.exit().remove();
-
         // we've moved where this ref points to,
         // so we need to update it 
-        myGraph.getView().nodes = snodes ;
         myGraph.getView().links = snodes ;
 
         this.d3Layout.start();
@@ -189,16 +303,16 @@ var myGraph = {
         // [ ] do we need to reindex ?
         //this.reindexLinks();
     },
-    addNodes: function(){
+    addNodes: function(n){
         //adding nodes should not require reindexing the links
+        this.nodes.push.apply( this.nodes , n );
     },
 
     setLinks: function(l) {
         this.links.length = 0 ;
         this.links.push.apply( this.links , l );
 
-        // [ ] we should call reindex here
-        //reindexLinks();
+        this.reindexLinks();
 
     },
     addLinks: function(){
@@ -211,8 +325,44 @@ var myGraph = {
         // [ ] error if the nodes do not exist
         // [ ] don't create the link
     },
+
+    reindexNodes: function(){
+        // index the nodes by 'id'
+
+        // use a localvar to getaround 'this' popping
+        var ni = {} ;
+        this.nodes.forEach(function(d, i) {
+            ni[d.id] = d;
+        });
+
+        this.nodeIndex = ni ;
+    },
+
     reindexLinks: function(){
-        // recalc ALL the links
+        // links are ALWAYS refs to a node ID, in this APP,
+
+        // but D3 wants a link to point to an ARRAY index (buggy)
+        // or a var/ref to an actual node object.
+
+        // as the node array is always changing, the safe thing to do
+        // is, after we've built the node array, wak the link array
+        // and compile in refs to the actual nodes
+
+        // WARNING: This will get unwieldy with large datasets
+        // we should find a way to pop and push links instead
+
+        this.reindexNodes();
+
+        // use a localvar to getaround 'this' popping
+        var ni = this.nodeIndex ;
+
+        // now walk the links array and insert refs to the nodes
+        // force.links uses 'd.source' and 'd.target'
+        this.links.forEach(function(d, i) {
+          d.source = ni[d.src];
+          d.target = ni[d.dst];
+        });
+
     }
 };
 
@@ -338,19 +488,8 @@ function initData( json ) {
     jsonData = readData( json );
 
     if ( jsonData ) {
-        /*
-        myGraph.init();
-        myGraph.setNodes( jsonData.hosts );
-        // [ ] redraw is coming up empty? why?
-        myGraph.redraw();
-        */
 
-        initD3( jsonData );
-
-        //
-        // initialise, draw something
-        //
-        redrawSVG();
+        myController.update();
 
     }
 }
@@ -621,65 +760,6 @@ function reindexLinks( json ) {
 // created and mesed with, so we have to create all these arrays
 // BEFORE we make a call to force.links()
 
-// initD3();
-
-// ---------------------------
-
-function initD3( json ) {
-    // setup the d3 SVG stuff
-    if ( ! json ) {
-        console.warn( "json data is corrupt" );
-        return ;
-    }
-
-    myGraph.init();
-    myGraph.setNodes( json.nodes );
-    myGraph.setLinks( json.links );
-
-    return ;
-
-    // warning globals...
-
-    force = d3.layout.force()
-        // point to the JSON dataset
-        .nodes(json.nodes)
-        .links(json.links)
-        .charge(-200)
-        .linkDistance(90)
-        .size([width, height])
-        // the tick method creates the layout, so it needs to return the
-        // nodes and link info, see below
-        .on("tick", tick);
-
-    /*
-    force = d3.sankey()
-        .size([width, height])
-        .nodes(json.nodes)
-        .links(json.links)
-        .layout(32)
-    */
-        
-
-    svg = d3.select("body").append("svg")
-        .attr("width", width)
-        .attr("height", height);
-
-    svg.append("text")
-        .attr("x", function(d) { return viewX(.05); })
-        .attr("y", function(d) { return viewX(.07); })
-        .text("Hosts");
-
-    svgNodes = svg.selectAll(".node");
-    svgLinks = svg.selectAll(".link");
-
-    myGraph.setView({
-        view: svg,
-        nodes: svgNodes,
-        links: svgLinks
-    });
-
-}
-
 //-------------------
 
 // and now we have Links[] and Nodes[] ready for use by D3::force...
@@ -687,14 +767,20 @@ function initD3( json ) {
 // here is the guts of the operation
 function redrawSVG() {
 
-    console.log ( "redraw SVG" );
-    //myGraph.redraw();
+    // [ ] i need a functional collection of links to
+    // test this correctly...
+
+    console.log ( "redraw SVG" , myGraph );
+
+    myGraph.redraw();
+    //drawNodes();
     //return ;
 
     var svgLinks = myGraph.getView().links;
     var svgNodes = myGraph.getView().nodes;
     var force = myGraph.d3Layout;
 
+    // and the links...
     svgLinks = svgLinks.data(force.links(), 
         // this is a function that will return a REF to the object
         //function(d){} );
@@ -723,43 +809,10 @@ function redrawSVG() {
         .attr("d", "M0,-5L10,0L0,5");
     */
 
-    // set the data for the list of nodes
-    svgNodes = svgNodes.data(force.nodes(), function(d) { return d.id;});
-
-    // hang everything off a 'g.node'
-    /*
-    */
-    svgNodes.enter()
-        .append("g")
-        .attr("class","node")
-        .call(force.drag)
-
-    svgNodes
-        .append("circle")
-        .attr("class", function(d) { 
-            return "node " + d.type; })
-        .attr("r", function(d) {
-            return getClassSize(d) });
-
-        /*
-            for mousoevers append("title")
-        */
-    svgNodes
-        .append("text")
-            // offset
-            .attr("dx", function(d) {
-                return getClassSize(d) + 4 })
-            .attr("class","nodelabel")
-            .text(function(d) { 
-                //return "foo"; });
-                return d.name; });
-
-
-    svgNodes.exit().remove();
-
     // we've moved where this ref points to,
     // so we need to update it 
-    myGraph.getView().nodes = svgNodes ;
+    //myGraph.getView().nodes = svgNodes ;
+
     myGraph.getView().links = svgLinks ;
 
     force.start();
