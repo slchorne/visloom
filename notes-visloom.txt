@@ -7,14 +7,12 @@ Visualise network flows
 
 [x] upload to git
 
-[ ] still need a table view
-
-[ ] need a ui for datapaths
-    [ ] the logical L2 connectivity
-    [ ] the logical mesh that may not be HW dependent
-
-[ ] find a game deisgner of they are interested
-    [ ] move from games to industrial design
+[ ] re-factor display states
+    [ ] reload calls the display code, 
+        [ ] readdata should exit to display code
+        [ ] create a display controller
+    [ ] use a switch statement
+    [ ] drop into the current state on a JSON reload
 
 [ ] reload the data every N seconds
     [ ] push updates remotely
@@ -25,10 +23,28 @@ Visualise network flows
     [ ] dynamically scale the data based on the node count
         [ ] user confogurable max node count
 
-[ ] search bar 
+[ ] Make it run on an IPHONE!!
 
 [ ] event handlers on the circles
-    [ ] what do we pop
+    [ ] NO HOVER!!! (touch screen friendly)
+    'selection.on(type[, listener[, capture]])'
+    [ ] what do we pop in the UI
+        [ ] display hosts when we select a switch
+        [ ] display a config node (as a BOX)
+
+    [ ] detect select, deselect
+    [ ] create an temp array of things to add/remove ?
+        
+
+[ ] search bar 
+[ ] still need a table view
+
+[ ] need a ui for datapaths
+    [ ] the logical L2 connectivity
+    [ ] the logical mesh that may not be HW dependent
+
+[ ] find a game deisgner of they are interested
+    [ ] move from games to industrial design
 
 [x] summarise data when the node count gets too high
     [x] stop at 30-40
@@ -42,6 +58,11 @@ Visualise network flows
     [ ] show the flow table
 
 [ ] other rendering options
+
+    [ ] https://github.com/anvaka/VivaGraphJS
+
+    [ ] http://www.zephyrosanemos.com/windstorm/current/live-demo.html
+
     [ ] fisheye distortion
         http://bost.ocks.org/mike/fisheye/
 

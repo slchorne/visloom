@@ -7,7 +7,7 @@ var MAXNODES = 30 ;
 var width = 600,
     height = 400;
 
-// scaling functions for the viewport
+// scaling function for the viewport
 var viewX = d3.scale.linear().range([0, width]),
     viewY = d3.scale.linear().range([height, 0]);
 
@@ -21,7 +21,166 @@ var svg,
 var jsonData ;
 
 // ---------------------------
+// view object for better handling of globals
+var myGraph = {
+
+    // we use methods here to modify the nodex|links lists
+    // so we never lose the original ref to these arrays
+    nodes: [],
+    links: [],
+    isInitialised: 0,
+    d3Layout: {},
+    svgView:{},
+
+    // scaling function for the viewport
+    viewX: d3.scale.linear().range([0, width]),
+    viewY: d3.scale.linear().range([height, 0]),
+
+    color: d3.scale.category10(),
+
+    init: function(){
+        if ( this.isInitialised ) {
+            return ;
+        }
+
+        this.isInitialised = 1 ;
+
+        this.d3Layout = d3.layout.force()
+            // point to the JSON dataset
+            .nodes(this.nodes)
+            .links(this.links)
+            .charge(-200)
+            .linkDistance(90)
+            .size([width, height])
+            // the tick method creates the layout, so it needs to return the
+            // nodes and link info, see below
+            .on("tick", tick);
+
+        /*
+        force = d3.sankey()
+            .size([width, height])
+            .nodes(this.nodes)
+            .links(this.links)
+            .layout(32)
+        */
+            
+
+        this.svgView.svg = d3.select("body").append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        this.svgView.svg.append("text")
+            .attr("x", function(d) { return this.viewX(.05); })
+            .attr("y", function(d) { return this.viewX(.07); })
+            .text("Hosts");
+
+        this.svgView.svgNodes = svg.selectAll(".node");
+        this.svgView.svgLinks = svg.selectAll(".link");
+
+    },
+
+    redraw: function(){
+        // redraw the graph based on our data
+        var slinks = this.svgView.svgLinks;
+        var snodes = this.svgView.svgNodes;
+
+        slinks = slinks.data(this.d3Layout.links(), 
+            // this is a function that will return a REF to the object
+            //function(d){} );
+            function(d) { 
+                return d.source.id + "-" + d.target.id; }
+            );
+
+       
+        // set up enter and exit rules
+        slinks.enter().insert("line", ".node").attr("class", "link");
+        slinks.exit().remove();
+
+        /*
+            ARROWHEADS??
+        slinks    
+            .append("svg:marker")
+            .attr("id", String)
+            .attr("class", "link")
+            .attr("viewBox", "0 -5 10 10")
+            .attr("refX", 15)
+            .attr("refY", -1.5)
+            .attr("markerWidth", 6)
+            .attr("markerHeight", 6)
+            .attr("orient", "auto")
+            .append("svg:path")
+            .attr("d", "M0,-5L10,0L0,5");
+        */
+
+        // set the data for the list of nodes
+        snodes = snodes.data(this.d3Layout.nodes(), function(d) { return d.id;});
+
+        // hang everything off a 'g.node'
+        /*
+        */
+        snodes.enter()
+            .append("g")
+            .attr("class","node")
+            .call(this.d3Layout.drag)
+
+        snodes
+            .append("circle")
+            .attr("class", function(d) { 
+                return "node " + d.type; })
+            .attr("r", function(d) {
+                return getClassSize(d) });
+
+        snodes
+            .append("text")
+                // offset
+                .attr("dx", function(d) {
+                    return getClassSize(d) + 4 })
+                .attr("class","nodelabel")
+                .text(function(d) { 
+                    //return "foo"; });
+                    return d.name; });
+
+
+        snodes.exit().remove();
+
+        this.d3Layout.start();
+    },
+
+    // ref to the graph type and object
+
+    setNodes: function(){
+        this.nodes.length = 0 ;
+        // [ ] do we need to reindex ?
+        this.reindexLinks();
+    },
+    addNodes: function(){
+        //adding nodes should not require reindexing the links
+    },
+
+    setLinks: function() {
+        this.links.length = 0 ;
+        reindexLinks();
+    },
+    addLinks: function(){
+        // just add a link array, but don't index
+    },
+    addAndIndexLinks: function(){
+        // add them and reindex on the fly
+        // assumes the nodes link is OK
+        
+        // [ ] error if the nodes do not exist
+        // [ ] don't create the link
+    },
+    reindexLinks: function(){
+        // recalc ALL the links
+    }
+
+
+};
+
+// ---------------------------
 // insert additional data after some time
+// animate!!
 /*
 setTimeout(function() {
     console.log( "more data");
@@ -36,7 +195,7 @@ setTimeout(function() {
     //reindexLinks( jsonData );
 
     redrawSVG();
-},5000);
+},4000);
 */
 
 // ---------------------------
@@ -411,12 +570,15 @@ function reindexLinks( json ) {
 // created and mesed with, so we have to create all these arrays
 // BEFORE we make a call to force.links()
 
-// initD3();
-
 // ---------------------------
 
 function initD3( json ) {
     // setup the d3 SVG stuff
+
+    // [ ] this is only called once on script startup,
+    // but it requires an empty json dataset, which has pointer reset 
+    // issues
+
     if ( ! json ) {
         console.warn( "json data is corrupt" );
         return ;
@@ -543,7 +705,6 @@ function getClassSize(d) {
 function tick() {
     // since we now have a parent 'g' object on the circle
     // we use the transform() to move things around
-
     svgNodes
         .attr("transform", function(d) { 
             return "translate(" + d.x + "," + d.y + ")"; });
