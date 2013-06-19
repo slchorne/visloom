@@ -15,9 +15,69 @@ var width = 600,
     height = 400;
 
 // ---------------------------
+// event handlers, they should be in the controller init method
+// (if we had one )
+
+var bod = d3.select("body");
+bod.on( 'click' , function(e) {
+    myController.setState();
+});
+bod.on( 'keypress' , function(e) {
+    myController.setState();
+});
+
+// ---------------------------
+//
+// load a dataset from an AJAX call, thus we have to set up
+// a callback that everything else gets called from
+// (we can't do anything unless we load the json data
+//       d3.json( file , callback() );
+
+var infile = "loom.json" ;
+//var infile = "loom-large.json" ;
+d3.json( infile , initData );
+
+// ---------------------------
+// this would ideally be a model object for the data
+// and call myModel.initData() etc
+//
+
+function initData( json ) {
+    // called once we load the json
+    console.log ( "initial json load" );
+
+    //
+    jsonData = readData( json );
+
+    if ( jsonData ) {
+        // run some initial processing on the data model
+        myController.indexHostTypes( json );  
+
+        myController.update();
+
+    }
+}
+
+function readData( json ) {
+    if ( ! json ) {
+        console.warn( "json data is missing" );
+        return ;
+    }
+
+    // add in some missing data
+    json.switches.forEach(function(d, i) {
+        d.nodetype = 'root';
+    });
+
+    //console.log( json );
+
+    return ( json );
+}
+
+// ---------------------------
 var myController = {
     // variables
-    viewState: 0,
+    viewState: 4,
 
     // need an ENUM variable
     /*
@@ -75,45 +135,92 @@ var myController = {
 
     },
 
-    drawFlows: function( json ) {
-        myGraph.setNodes( json.hosts );
-        myGraph.setLinks( json.flows );
+    // -------------
+    getHostNodes: function( json ) {
+
+        //console.log ( "Setting nodes to hosts");
+
+        var hnodes = [];
+        if ( json.hosts.length < MAXNODES ) {
+            hnodes = json.hosts ;
+        }
+        else {
+            // just a summary node
+            hnodes.push({
+                "id": "summ", 
+                "name": json.hosts.length + " hosts",
+                "type": "summary", 
+                 "ovs": ""
+            });
+        }
+
+        return hnodes;
     },
 
-    drawSwitchUplinks: function(json) {
-        this.drawSwitches( json );
-        // as long as we called 'setLinks()', the nodelist
-        // will already be indexed
-        myGraph.addAndIndexLinks( json.uplinks );
-    },
-
-    drawSwitches: function(json) {
-        myGraph.setNodes( json.hosts );
-        //myGraph.addNodes( this.getGroupNodes( json ) );
-        myGraph.addNodes( json.switches );
-
-        // setLinks() will always reindex the node list
-        // and reindex the link list
-        myGraph.setLinks( this.getSwitchLinks( json ) );
-
-        return 1;
-    },
+    // -------------
 
     drawHosts: function(json) {
-        myGraph.setNodes( json.hosts );
+        myGraph.setNodes( this.getHostNodes( json ) );
+        //this.setNodesToHosts( json );
         myGraph.setLinks();
-        //myGraph.addNodes( this.getGroupNodes( json ) );
-        //myGraph.setLinks( this.getGroupLinks( json ) );
         return 1;
     },
 
     drawHostGroups: function(json) {
         this.drawHosts( json );
-        //myGraph.setNodes( json.hosts );
         myGraph.addNodes( this.getGroupNodes( json ) );
         myGraph.setLinks( this.getGroupLinks( json ) );
         return 1;
     },
+
+    drawFlows: function( json ) {
+        // for small sets we show host flows
+        // for large sets we show group flows
+        var hn = this.getHostNodes( json );
+        if ( hn.length > 1 ) {
+            myGraph.setNodes( hn );
+            myGraph.setLinks( json.flows );
+        }
+        else {
+            myGraph.setNodes( this.getGroupNodes( json ) );
+            myGraph.setLinks( this.getGroupFlows( json ) );
+        }
+
+        // and the correct of links
+        //myGraph.setNodes( this.getFlowNodes( json ) );
+        //myGraph.setNodes( json.hosts );
+    },
+
+    drawSwitches: function(json) {
+        // for small sets we draw hosts and switches,
+        // for large lists we draw just the switches
+        myGraph.setNodes( json.switches );
+
+        var hn = this.getHostNodes( json );
+        // summary (large) lists have a length of 1
+        if ( hn.length > 1 ) {
+            // add in the host detail
+            myGraph.addNodes( hn );
+            // setLinks() will always reindex the node list
+            // and reindex the link list
+            myGraph.setLinks( this.getSwitchLinks( json ) );
+        }
+        else {
+            // no links, just switches
+            myGraph.setLinks();
+        }
+
+        return 1;
+    },
+
+    drawSwitchUplinks: function(json) {
+        this.drawSwitches( json );
+
+        // as long as we called 'setLinks()', the nodelist
+        // will already be indexed
+        myGraph.addAndIndexLinks( json.uplinks );
+    },
+
     //--------
 
     // model functions, these should be part of the json model
@@ -130,6 +237,13 @@ var myController = {
             }
         });
         return 1 ;
+    },
+
+    getGroupFlows: function( json ) {
+        var gflows = [];
+
+        // [ ] see 'getHostFlows();
+
     },
 
     getGroupNodes: function( json ) {
@@ -187,24 +301,6 @@ var myController = {
 
     // end model functions
     // --------------------------
-
-    setNodesToHosts: function( json ) {
-        console.log ( "Setting nodes to hosts");
-
-        if ( json.hosts.length < MAXNODES ) {
-            myGraph.setNodes( json.hosts );
-        }
-        else {
-            myGraph.setNodes({
-                "id": "summ", 
-                "name": json.hosts.length + " hosts",
-                "type": "summary", 
-                 "ovs": ""
-            });
-        }
-
-        return 1;
-    },
 
     setNodestoHostandGroups: function( json ) {
         console.log ( "Setting nodes to hosts and Groups");
@@ -299,7 +395,7 @@ var myGraph = {
         // render the data in the SVG.
         // we assume we have valid nodes[] and links[] arrays
 
-        console.log ( "mygraph redraw", myGraph );
+        // console.log ( "mygraph redraw", myGraph );
 
         // redraw the graph based on our data
         var snodes = this.getView().nodes; 
@@ -381,9 +477,6 @@ var myGraph = {
         if ( n ) {
             this.nodes.push.apply( this.nodes , n );
         }
-
-        // [ ] do we need to reindex ?
-        //this.reindexLinks();
     },
     addNodes: function(n){
         //adding nodes should not require reindexing the links
@@ -395,8 +488,10 @@ var myGraph = {
         this.links.length = 0 ;
         if ( l ) {
             this.links.push.apply( this.links , l );
-            this.reindexLinks();
         }
+
+        // at a minimum, you need to force reindexing of nodes
+        this.reindexLinks();
 
     },
     addLinks: function(l){
@@ -412,7 +507,11 @@ var myGraph = {
         var ni = this.nodeIndex ;
         var linklist = this.links ;
 
+        // console.log( "nodeinxed" , ni );
+
         l.forEach(function(d, i) {
+
+            // console.log( "adding ilink" , d );
 
             d.source = ni[d.src];
             d.target = ni[d.dst];
@@ -488,115 +587,6 @@ setTimeout(function() {
 // ---------------------------
 // set up input event handlers
 
-var bod = d3.select("body");
-var nextCounter = 0 ;
-bod.on( 'click' , function(e) {
-    nextData();
-});
-bod.on( 'keypress' , function(e) {
-    nextData();
-});
-
-function nextData() {
-    console.log ( 'click' , nextCounter );
-
-    myController.setState();
-    return ;
-
-    var legend = d3.select("text");
-
-    if ( ! nextCounter ) {
-        console.log( "Groups" );
-        legend.text( "Hosts + Groups" );
-
-        // now we index the array and re-compile the links
-        getGroupLinks( jsonData );
-        reindexLinks( jsonData );
-
-        //console.log( jsonData );
-
-        // redraw
-        myGraph.redraw();
-        nextCounter ++ ;
-    }
-    else if ( nextCounter === 1 ) {
-        // nodes to a switch
-        legend.text( "Hosts + Switches" );
-        console.log( "Switches" );
-
-        getSwitchLinks( jsonData );
-        reindexLinks( jsonData );
-
-        myGraph.redraw();
-        nextCounter ++ ;
-    }
-    else if ( nextCounter === 2 ) {
-        // switch interconnects
-        legend.text( "Switches + Uplinks" );
-        console.log( "uplinks" );
-
-        getSwitchInterconnects( jsonData );
-        reindexLinks( jsonData );
-
-        myGraph.redraw();
-        nextCounter ++ ;
-    }
-    else if ( nextCounter === 3 ) {
-        // flows
-        legend.text( "Hosts + Flows" );
-        console.log( "flows" );
-
-        getHostFlows( jsonData );
-        reindexLinks( jsonData );
-
-        myGraph.redraw();
-        nextCounter ++ ;
-    }
-    else {
-        // loop/reset
-        console.log( "reset" );
-
-        setNodesToHosts( jsonData );
-        reindexLinks( jsonData );
-
-        myGraph.redraw();
-        nextCounter = 0 ;
-    }
-
-
-
-    // [ ] flows
-
-}
-
-// ---------------------------
-//
-// load a dataset from an AJAX call, thus we have to set up
-// a callback that everything else gets called from
-// (we can't do anything unless we load the json data
-//       d3.json( file , callback() );
-
-var infile = "loom.json" ;
-//var infile = "loom-large.json" ;
-d3.json( infile , initData );
-
-// ---------------------------
-//
-function initData( json ) {
-    // called once we load the json
-    console.log ( "initial json load" );
-    //
-
-    jsonData = readData( json );
-
-    if ( jsonData ) {
-        // run some initial processing on the data model
-        myController.indexHostTypes( json );  
-
-        myController.update();
-
-    }
-}
 
 function getHostFlows( json ) {
 
@@ -788,29 +778,6 @@ function setNodesToHosts( json ) {
     return 1;
 }
 
-function readData( json ) {
-    if ( ! json ) {
-        console.warn( "json data is missing" );
-        return ;
-    }
-
-    // compile the json data, 
-    json.nodes = [ ];
-    json.links = [ ];
-
-    // add in some missing data
-    json.switches.forEach(function(d, i) {
-        d.nodetype = 'root';
-    });
-
-    setNodesToHosts( json );
-    
-    //console.log( json );
-
-    return ( json );
-
-}
-
 function reindexHosts( json ) {
 
     // index the nodes by 'id'
@@ -865,28 +832,6 @@ function reindexLinks( json ) {
 // BEFORE we make a call to force.links()
 
 //-------------------
-function drawLinks() {
-
-    var slinks = myGraph.getView().links;
-
-    // and the links...
-    slinks = slinks.data(myGraph.d3Layout.links(), 
-        // this is a function that will return a REF to the object
-        //function(d){} );
-        function(d) { 
-            return d.source.id + "-" + d.target.id; }
-        );
-
-    // set up enter and exit rules
-    slinks.enter().insert("line", ".node").attr("class", "link");
-    slinks.exit().remove();
-
-    // we've moved where this ref points to,
-    // so we need to update it 
-    myGraph.getView().links = slinks ;
-
-    myGraph.d3Layout.start();
-}
 
 function getClassSize(d) {
     // calculate a size based on an nodes class
