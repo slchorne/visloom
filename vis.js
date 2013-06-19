@@ -10,26 +10,15 @@
 var MAXNODES = 30 ;
 var jsonData ;
 
+// keeping this glpobal seems to help
 var width = 600,
     height = 400;
 
-// scaling function for the viewport
-var viewX = d3.scale.linear().range([0, width]),
-    viewY = d3.scale.linear().range([height, 0]);
-
-var color = d3.scale.category10();
-
-var force ;
-
-/*
-*/
-
-var svg,
-    svgNodes,
-    svgLinks;
-
 // ---------------------------
 var myController = {
+    // variables
+    viewState: 0,
+
     // state handler for the various draw modes
     update: function() {
 
@@ -43,11 +32,27 @@ var myController = {
         //
         // initialise, draw something
         //
-        redrawSVG();
+        myGraph.redraw();
+        //redrawSVG();
 
     },
 
     // --------------------------
+    /*
+        switch(n)
+        {
+        case 1:
+          execute code block 1
+          break;
+        case 2:
+          execute code block 2
+          break;
+        default:
+          code to be executed if n is different from case 1 and 2
+        }
+    */
+    // --------------------------
+
     // model functions, these should be part of the json model
     indexHostTypes: function( json ) {
         // generate an index of all the unique host types
@@ -104,9 +109,6 @@ var myController = {
 
     setNodesToHosts: function( json ) {
         console.log ( "Setting nodes to hosts");
-
-        // [ ] why do we do this here???
-        this.indexHostTypes( json );  
 
         if ( json.hosts.length < MAXNODES ) {
             myGraph.setNodes( json.hosts );
@@ -213,14 +215,14 @@ var myGraph = {
     },
 
     redraw: function(){
+        // render the data in the SVG.
+        // we assume we have valid nodes[] and links[] arrays
 
         console.log ( "mygraph redraw", myGraph );
 
         // redraw the graph based on our data
         var snodes = this.getView().nodes; 
         var slinks = this.getView().links; 
-
-        var svgLinks = this.getView().links;
 
         // set the data for the list of nodes
         snodes = snodes.data(this.d3Layout.nodes(), 
@@ -251,15 +253,11 @@ var myGraph = {
 
         snodes.exit().remove();
 
-        myGraph.getView().nodes = snodes ;
+        // we've moved where this ref points to,
+        // so we need to update it 
+        this.getView().nodes = snodes ;
 
-    //--------------
-
-        return ;
-
-    //--------------
-
-
+        // and the links...
         slinks = slinks.data(this.d3Layout.links(), 
             // this is a function that will return a REF to the object
             //function(d){} );
@@ -267,7 +265,6 @@ var myGraph = {
                 return d.source.id + "-" + d.target.id; }
             );
 
-       
         // set up enter and exit rules
         slinks.enter().insert("line", ".node").attr("class", "link");
         slinks.exit().remove();
@@ -290,9 +287,10 @@ var myGraph = {
 
         // we've moved where this ref points to,
         // so we need to update it 
-        myGraph.getView().links = snodes ;
+        this.getView().links = slinks ;
 
         this.d3Layout.start();
+
     },
 
     // helper methods
@@ -382,7 +380,7 @@ setTimeout(function() {
     //getGroupLinks( jsonData );
     //reindexLinks( jsonData );
 
-    redrawSVG();
+    myGraph.redraw();
 },4000);
 */
 
@@ -414,7 +412,7 @@ function nextData() {
         //console.log( jsonData );
 
         // redraw
-        redrawSVG();
+        myGraph.redraw();
         nextCounter ++ ;
     }
     else if ( nextCounter === 1 ) {
@@ -425,7 +423,7 @@ function nextData() {
         getSwitchLinks( jsonData );
         reindexLinks( jsonData );
 
-        redrawSVG();
+        myGraph.redraw();
         nextCounter ++ ;
     }
     else if ( nextCounter === 2 ) {
@@ -436,7 +434,7 @@ function nextData() {
         getSwitchInterconnects( jsonData );
         reindexLinks( jsonData );
 
-        redrawSVG();
+        myGraph.redraw();
         nextCounter ++ ;
     }
     else if ( nextCounter === 3 ) {
@@ -447,7 +445,7 @@ function nextData() {
         getHostFlows( jsonData );
         reindexLinks( jsonData );
 
-        redrawSVG();
+        myGraph.redraw();
         nextCounter ++ ;
     }
     else {
@@ -457,7 +455,7 @@ function nextData() {
         setNodesToHosts( jsonData );
         reindexLinks( jsonData );
 
-        redrawSVG();
+        myGraph.redraw();
         nextCounter = 0 ;
     }
 
@@ -488,6 +486,8 @@ function initData( json ) {
     jsonData = readData( json );
 
     if ( jsonData ) {
+        // run some initial processing on the data model
+        myController.indexHostTypes( json );  
 
         myController.update();
 
@@ -761,61 +761,27 @@ function reindexLinks( json ) {
 // BEFORE we make a call to force.links()
 
 //-------------------
+function drawLinks() {
 
-// and now we have Links[] and Nodes[] ready for use by D3::force...
-
-// here is the guts of the operation
-function redrawSVG() {
-
-    // [ ] i need a functional collection of links to
-    // test this correctly...
-
-    console.log ( "redraw SVG" , myGraph );
-
-    myGraph.redraw();
-    //drawNodes();
-    //return ;
-
-    var svgLinks = myGraph.getView().links;
-    var svgNodes = myGraph.getView().nodes;
-    var force = myGraph.d3Layout;
+    var slinks = myGraph.getView().links;
 
     // and the links...
-    svgLinks = svgLinks.data(force.links(), 
+    slinks = slinks.data(myGraph.d3Layout.links(), 
         // this is a function that will return a REF to the object
         //function(d){} );
         function(d) { 
             return d.source.id + "-" + d.target.id; }
         );
 
-   
     // set up enter and exit rules
-    svgLinks.enter().insert("line", ".node").attr("class", "link");
-    svgLinks.exit().remove();
-
-    /*
-        ARROWHEADS??
-    svgLinks    
-        .append("svg:marker")
-        .attr("id", String)
-        .attr("class", "link")
-        .attr("viewBox", "0 -5 10 10")
-        .attr("refX", 15)
-        .attr("refY", -1.5)
-        .attr("markerWidth", 6)
-        .attr("markerHeight", 6)
-        .attr("orient", "auto")
-        .append("svg:path")
-        .attr("d", "M0,-5L10,0L0,5");
-    */
+    slinks.enter().insert("line", ".node").attr("class", "link");
+    slinks.exit().remove();
 
     // we've moved where this ref points to,
     // so we need to update it 
-    //myGraph.getView().nodes = svgNodes ;
+    myGraph.getView().links = slinks ;
 
-    myGraph.getView().links = svgLinks ;
-
-    force.start();
+    myGraph.d3Layout.start();
 }
 
 function getClassSize(d) {
