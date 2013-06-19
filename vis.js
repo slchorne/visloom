@@ -28,7 +28,7 @@ var myController = {
     setState: function() {
         // cycle through the view states
         this.viewState ++ ;
-        if ( this.viewState > 3 ) {
+        if ( this.viewState > 4 ) {
              this.viewState = 0 
         };
         this.update();
@@ -61,6 +61,7 @@ var myController = {
             case 4:
                 // flows
                 legend.text( "Hosts + Flows" );
+                this.drawFlows( jsonData );
                 break;
             default:
                 // hosts only
@@ -74,8 +75,15 @@ var myController = {
 
     },
 
+    drawFlows: function( json ) {
+        myGraph.setNodes( json.hosts );
+        myGraph.setLinks( json.flows );
+    },
+
     drawSwitchUplinks: function(json) {
         this.drawSwitches( json );
+        // as long as we called 'setLinks()', the nodelist
+        // will already be indexed
         myGraph.addAndIndexLinks( json.uplinks );
     },
 
@@ -83,15 +91,17 @@ var myController = {
         myGraph.setNodes( json.hosts );
         //myGraph.addNodes( this.getGroupNodes( json ) );
         myGraph.addNodes( json.switches );
-        myGraph.reindexNodes();
+
+        // setLinks() will always reindex the node list
+        // and reindex the link list
         myGraph.setLinks( this.getSwitchLinks( json ) );
-        //myGraph.reindexLinks();
 
         return 1;
     },
 
     drawHosts: function(json) {
         myGraph.setNodes( json.hosts );
+        myGraph.setLinks();
         //myGraph.addNodes( this.getGroupNodes( json ) );
         //myGraph.setLinks( this.getGroupLinks( json ) );
         return 1;
@@ -366,8 +376,11 @@ var myGraph = {
 
     // helper methods
     setNodes: function(n){
+        // this will also reset the list
         this.nodes.length = 0 ;
-        this.nodes.push.apply( this.nodes , n );
+        if ( n ) {
+            this.nodes.push.apply( this.nodes , n );
+        }
 
         // [ ] do we need to reindex ?
         //this.reindexLinks();
@@ -378,10 +391,12 @@ var myGraph = {
     },
 
     setLinks: function(l) {
+        // this will also reset the list
         this.links.length = 0 ;
-        this.links.push.apply( this.links , l );
-
-        this.reindexLinks();
+        if ( l ) {
+            this.links.push.apply( this.links , l );
+            this.reindexLinks();
+        }
 
     },
     addLinks: function(l){
@@ -392,16 +407,18 @@ var myGraph = {
     addAndIndexLinks: function(l){
         // add a link and reindex on the fly
         // assumes the nodes link is OK
+
+        // make temp vars to get around namespace issues
         var ni = this.nodeIndex ;
+        var linklist = this.links ;
 
         l.forEach(function(d, i) {
-
-            console.log ( 'add idx link' , d );
 
             d.source = ni[d.src];
             d.target = ni[d.dst];
 
-            this.links.push(d);
+            linklist.push(d);
+
         });
         
         // [ ] error if the nodes do not exist
