@@ -19,39 +19,92 @@ var myController = {
     // variables
     viewState: 0,
 
+    // need an ENUM variable
+    /*
+    var en = { A: 1, B:2 };
+    if en.A ...
+        */
+
+    setState: function() {
+        // cycle through the view states
+        this.viewState ++ ;
+        if ( this.viewState > 3 ) {
+             this.viewState = 0 
+        };
+        this.update();
+    },
+
     // state handler for the various draw modes
     update: function() {
-
+        // this will only get called once
         myGraph.init();
-        myGraph.setNodes( jsonData.nodes );
 
-        myGraph.addNodes( this.getGroupNodes( jsonData ) );
+        var legend = d3.select("text");
 
-        myGraph.setLinks( this.getGroupLinks( jsonData ) );
+        // draw the graph based on the current state
+        switch(this.viewState) {
+            case 1:
+                // hosts and Switches
+                legend.text( "Hosts + Groups" );
+                this.drawHostGroups( jsonData );
+                break;
+            case 2:
+                // hosts and Switches
+                legend.text( "Hosts + Switches" );
+                this.drawSwitches( jsonData );
+                break;
+            case 3:
+                // switches and uplinks
+                legend.text( "Switches + Uplinks" );
+                this.drawSwitchUplinks( jsonData );
+                break;
+            case 4:
+                // flows
+                legend.text( "Hosts + Flows" );
+                break;
+            default:
+                // hosts only
+                legend.text( "Hosts" );
+                this.drawHosts( jsonData );
+        }
 
         //
-        // initialise, draw something
-        //
+        // redraw the scene
         myGraph.redraw();
-        //redrawSVG();
 
     },
 
-    // --------------------------
-    /*
-        switch(n)
-        {
-        case 1:
-          execute code block 1
-          break;
-        case 2:
-          execute code block 2
-          break;
-        default:
-          code to be executed if n is different from case 1 and 2
-        }
-    */
-    // --------------------------
+    drawSwitchUplinks: function(json) {
+        this.drawSwitches( json );
+        myGraph.addAndIndexLinks( json.uplinks );
+    },
+
+    drawSwitches: function(json) {
+        myGraph.setNodes( json.hosts );
+        //myGraph.addNodes( this.getGroupNodes( json ) );
+        myGraph.addNodes( json.switches );
+        myGraph.reindexNodes();
+        myGraph.setLinks( this.getSwitchLinks( json ) );
+        //myGraph.reindexLinks();
+
+        return 1;
+    },
+
+    drawHosts: function(json) {
+        myGraph.setNodes( json.hosts );
+        //myGraph.addNodes( this.getGroupNodes( json ) );
+        //myGraph.setLinks( this.getGroupLinks( json ) );
+        return 1;
+    },
+
+    drawHostGroups: function(json) {
+        this.drawHosts( json );
+        //myGraph.setNodes( json.hosts );
+        myGraph.addNodes( this.getGroupNodes( json ) );
+        myGraph.setLinks( this.getGroupLinks( json ) );
+        return 1;
+    },
+    //--------
 
     // model functions, these should be part of the json model
     indexHostTypes: function( json ) {
@@ -105,6 +158,24 @@ var myController = {
         return glinks ;
     },
 
+    getSwitchLinks: function(json) {
+        var swlinks = [];
+
+        // list what switch each host is connected to
+        if ( json.hosts.length < MAXNODES ) {
+            json.hosts.forEach(function(d, i) {
+                swlinks.push({
+                    src: d.id,
+                    dst: d.ovs
+                });
+            });
+        }
+
+        return swlinks ;
+
+    },
+
+    // end model functions
     // --------------------------
 
     setNodesToHosts: function( json ) {
@@ -313,12 +384,25 @@ var myGraph = {
         this.reindexLinks();
 
     },
-    addLinks: function(){
+    addLinks: function(l){
         // just add a link array, but don't index
+        this.links.push.apply( this.links , l );
     },
-    addAndIndexLinks: function(){
-        // add them and reindex on the fly
+
+    addAndIndexLinks: function(l){
+        // add a link and reindex on the fly
         // assumes the nodes link is OK
+        var ni = this.nodeIndex ;
+
+        l.forEach(function(d, i) {
+
+            console.log ( 'add idx link' , d );
+
+            d.source = ni[d.src];
+            d.target = ni[d.dst];
+
+            this.links.push(d);
+        });
         
         // [ ] error if the nodes do not exist
         // [ ] don't create the link
@@ -398,6 +482,9 @@ bod.on( 'keypress' , function(e) {
 
 function nextData() {
     console.log ( 'click' , nextCounter );
+
+    myController.setState();
+    return ;
 
     var legend = d3.select("text");
 
