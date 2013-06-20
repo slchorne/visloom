@@ -9,6 +9,7 @@
 
 var MAXNODES = 30 ;
 var jsonData ;
+var infile = "loom.json" ;
 
 // keeping this glpobal seems to help
 var width = 600,
@@ -18,13 +19,31 @@ var width = 600,
 // event handlers, they should be in the controller init method
 // (if we had one )
 
+// [ ] reload the zone on a keypress
+
 var bod = d3.select("body");
 bod.on( 'click' , function(e) {
     myController.setState();
 });
 bod.on( 'keypress' , function(e) {
-    myController.setState();
+    if ( d3.event.keyCode === 106 ) {
+        // 'j' key...
+        reloadJson();
+    }
+    else {
+        myController.setState();
+    }
 });
+
+// reload the data on periodic intervals
+// animate!!
+/*
+//setTimeout(function() {
+setInterval(function() {
+    // repeat, helooo memory bloat
+    reloadJson();
+},5000);
+*/
 
 // ---------------------------
 //
@@ -33,9 +52,14 @@ bod.on( 'keypress' , function(e) {
 // (we can't do anything unless we load the json data
 //       d3.json( file , callback() );
 
-var infile = "loom.json" ;
+function reloadJson() {
+    console.log( "Reloading JSON data" );
+    d3.json( infile , initData );
+}
+
 //var infile = "loom-large.json" ;
-d3.json( infile , initData );
+//d3.json( infile , initData );
+reloadJson();
 
 // ---------------------------
 // this would ideally be a model object for the data
@@ -44,7 +68,8 @@ d3.json( infile , initData );
 
 function initData( json ) {
     // called once we load the json
-    console.log ( "initial json load" );
+    //console.log ( "json loaded" , json );
+    console.log ( "json loaded" );
 
     //
     jsonData = readData( json );
@@ -602,17 +627,18 @@ var myGraph = {
         var ni = this.nodeIndex ;
         var linklist = this.links ;
 
-        // console.log( "nodeinxed" , ni );
+        //console.log( "node index" , ni );
 
         l.forEach(function(d, i) {
 
-            // console.log( "adding ilink" , d );
+            //console.log( "adding indexed link" , d );
 
-            d.source = ni[d.src];
-            d.target = ni[d.dst];
+            if ( ni[d.src] && ni[d.dst] ) {
+                d.source = ni[d.src];
+                d.target = ni[d.dst];
 
-            linklist.push(d);
-
+                linklist.push(d);
+            }
         });
         
         // [ ] error if the nodes do not exist
@@ -649,35 +675,25 @@ var myGraph = {
         // use a localvar to getaround 'this' popping
         var ni = this.nodeIndex ;
 
+        // links may point to non-existent nodes,
+        // so we have to filter them out by using a temp
+        var linklist = [];
+
         // now walk the links array and insert refs to the nodes
         // force.links uses 'd.source' and 'd.target'
         this.links.forEach(function(d, i) {
-          d.source = ni[d.src];
-          d.target = ni[d.dst];
+            if ( ni[d.src] && ni[d.dst] ) {
+                d.source = ni[d.src];
+                d.target = ni[d.dst];
+                linklist.push ( d );
+            }
         });
+
+        this.links.length = 0 ;
+        this.links.push.apply( this.links , linklist );
 
     }
 };
-
-// ---------------------------
-// insert additional data after some time
-// animate!!
-/*
-setTimeout(function() {
-    console.log( "more data");
-    var h = {
-        "id": "r1", "name": "www-dev", "type": "http", 
-                     "ovs": "s01", "port": "02"
-    };
-
-    jsonData.hosts.push(h);
-    jsonData.nodes.push(h);
-    //getGroupLinks( jsonData );
-    //reindexLinks( jsonData );
-
-    myGraph.redraw();
-},4000);
-*/
 
 //-------------------
 
