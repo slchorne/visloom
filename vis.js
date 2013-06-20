@@ -19,11 +19,11 @@ var width = 600,
 // event handlers, they should be in the controller init method
 // (if we had one )
 
-// [ ] reload the zone on a keypress
-
 var bod = d3.select("body");
 bod.on( 'click' , function(e) {
-    myController.setState();
+    // find out what object we clicked on
+    myController.setState( d3.event.srcElement.id );
+    //console.log ( 'global', d3.event );
 });
 bod.on( 'keypress' , function(e) {
     if ( d3.event.keyCode === 106 ) {
@@ -101,7 +101,7 @@ function readData( json ) {
 // ---------------------------
 var myController = {
     // variables
-    viewState: 0,
+    viewState: 'hosts',
 
     // need an ENUM variable
     /*
@@ -109,12 +109,11 @@ var myController = {
     if en.A ...
         */
 
-    setState: function() {
-        // cycle through the view states
-        this.viewState ++ ;
-        if ( this.viewState > 4 ) {
-             this.viewState = 0 
-        };
+    setState: function(state) {
+        // pass a string to set the state
+        if ( state ) {
+            this.viewState = state ;
+        }
         this.update();
     },
 
@@ -123,34 +122,41 @@ var myController = {
         // this will only get called once
         myGraph.init();
 
-        var legend = d3.select("text");
+        //var legend = d3.select("text");
+        //console.log ( 'update' , this.viewState );
 
         // draw the graph based on the current state
         switch(this.viewState) {
-            case 1:
+            case 'hosts':
+                //legend.text( "Hosts" );
+                this.drawHosts( jsonData );
+                break;
+            case 'groups':
                 // hosts and Switches
-                legend.text( "Hosts + Groups" );
+                //legend.text( "Hosts + Groups" );
                 this.drawHostGroups( jsonData );
                 break;
-            case 2:
+            case 'switches':
                 // hosts and Switches
-                legend.text( "Hosts + Switches" );
+                //legend.text( "Hosts + Switches" );
                 this.drawSwitches( jsonData );
                 break;
-            case 3:
+            case 'uplinks':
                 // switches and uplinks
-                legend.text( "Switches + Uplinks" );
+                //legend.text( "Switches + Uplinks" );
                 this.drawSwitchUplinks( jsonData );
                 break;
-            case 4:
+            case 'flows':
                 // flows
-                legend.text( "Hosts + Flows" );
+                //legend.text( "Hosts + Flows" );
                 this.drawFlows( jsonData );
                 break;
+            /*
             default:
                 // hosts only
-                legend.text( "Hosts" );
+                //legend.text( "Hosts" );
                 this.drawHosts( jsonData );
+                */
         }
 
         //
