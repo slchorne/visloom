@@ -19,6 +19,20 @@
     text-anchor: "middle";
 }
 
+#menu {
+    top: 5 ;
+    left: 5 ;
+    position: absolute;
+}
+.menuitem {
+    background-color:#b0c4de;
+    border-style:solid;
+    border-width:1px;
+    border-collapse:collapse;
+    margin: 2px ;
+    padding: 2px ;
+}
+
 /*
 individual node color classes
 */
@@ -31,6 +45,14 @@ individual node color classes
 <body>
 <script src="d3/d3.v3.min.js"></script>
 <script src="vis.js"></script>
+
+<div id="menu">Display:
+    <div class="menuitem" id="hosts">Hosts</div>
+    <div class="menuitem" id="groups">Groups</div>
+    <div class="menuitem" id="switches">Switches</div>
+    <div class="menuitem" id="uplinks">Uplinks</div>
+    <div class="menuitem" id="flows">Flows</div>
+</div>
 
 </body>
 </html>
