@@ -52,9 +52,8 @@ function initData( json ) {
     if ( jsonData ) {
         // run some initial processing on the data model
         myController.indexHostTypes( json );  
-
+        myController.indexHosts( json );  
         myController.update();
-
     }
 }
 
@@ -136,28 +135,6 @@ var myController = {
     },
 
     // -------------
-    getHostNodes: function( json ) {
-
-        //console.log ( "Setting nodes to hosts");
-
-        var hnodes = [];
-        if ( json.hosts.length < MAXNODES ) {
-            hnodes = json.hosts ;
-        }
-        else {
-            // just a summary node
-            hnodes.push({
-                "id": "summ", 
-                "name": json.hosts.length + " hosts",
-                "type": "summary", 
-                 "ovs": ""
-            });
-        }
-
-        return hnodes;
-    },
-
-    // -------------
 
     drawHosts: function(json) {
         myGraph.setNodes( this.getHostNodes( json ) );
@@ -186,9 +163,7 @@ var myController = {
             myGraph.setLinks( this.getGroupFlows( json ) );
         }
 
-        // and the correct of links
-        //myGraph.setNodes( this.getFlowNodes( json ) );
-        //myGraph.setNodes( json.hosts );
+        return 1;
     },
 
     drawSwitches: function(json) {
@@ -252,13 +227,32 @@ var myController = {
         });
     },
 
+    getHostNodes: function( json ) {
+
+        //console.log ( "Setting nodes to hosts");
+
+        var hnodes = [];
+        if ( json.hosts.length < MAXNODES ) {
+            hnodes = json.hosts ;
+        }
+        else {
+            // just a summary node
+            hnodes.push({
+                "id": "summ", 
+                "name": json.hosts.length + " hosts",
+                "type": "summary", 
+                 "ovs": ""
+            });
+        }
+
+        return hnodes;
+    },
+
     getGroupFlows: function( json ) {
         // summarise flows by group
         var gflows = [];
 
-        // we have to index the hosts by id, so we can look them up
-        // in the flows list. 
-        this.indexHosts( json );
+        // We assume the host by index was created at data load
 
         // now walk the flows to get the host type
         // [ ] see 'getHostFlows();
@@ -371,11 +365,6 @@ var myController = {
 
     // end model functions
     // --------------------------
-
-    setNodestoHostandGroups: function( json ) {
-        console.log ( "Setting nodes to hosts and Groups");
-        this.setNodesToHosts(json);
-    }
 
 };
 
