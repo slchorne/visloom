@@ -77,7 +77,7 @@ function readData( json ) {
 // ---------------------------
 var myController = {
     // variables
-    viewState: 4,
+    viewState: 0,
 
     // need an ENUM variable
     /*
@@ -239,10 +239,80 @@ var myController = {
         return 1 ;
     },
 
+    indexHosts: function( json ) {
+        // lazy instantiation
+        if ( json.hostIndex ) {
+            return ;
+        }
+
+        // index the nodes by 'id'
+        json.hostIndex = {};
+        json.hosts.forEach(function(d, i) {
+            json.hostIndex[d.id] = d;
+        });
+    },
+
     getGroupFlows: function( json ) {
+        // summarise flows by group
         var gflows = [];
 
+        // we have to index the hosts by id, so we can look them up
+        // in the flows list. 
+        this.indexHosts( json );
+
+        // now walk the flows to get the host type
         // [ ] see 'getHostFlows();
+        var flowIndex = {};
+        json.flows.forEach(function(d, i) {
+            // find the source and dst type
+            // and summarise flows by type
+            var st,dt
+            if ( json.hostIndex[d.src] ) {
+                st= json.hostIndex[d.src].type
+            }
+            else {
+                console.log ( "Bad f src" , d );
+            }
+            if ( json.hostIndex[d.dst] ) {
+                dt= json.hostIndex[d.dst].type
+            }
+            else {
+                console.log ( "Bad f dst" , d );
+            }
+
+            //console.log ( "new flow : " , st , dt );
+
+            if ( st && dt ) {
+                if ( ! flowIndex[st] ) {
+                    flowIndex[st] = {}
+                }
+                flowIndex[st][dt]=1;
+            }
+
+        });
+
+        // console.log( 'fix' , flowIndex );
+
+        var flist = [];
+
+        // now walk the flow summaries
+        Object.keys(flowIndex).forEach(function(k, i) {
+            var fsrc = k;
+            Object.keys(flowIndex[fsrc]).forEach(function(k, i) {
+                var fdst = k;
+
+                //console.log ( "add flow : " , fsrc , fdst );
+
+                if ( ! ( fsrc === fdst ) ) {
+                    flist.push({
+                        src: fsrc,
+                        dst: fdst
+                    });
+                }
+            });
+        });
+
+        return flist ;
 
     },
 
