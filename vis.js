@@ -63,7 +63,7 @@ function reloadJson() {
 //var infile = "loom-large.json" ;
 //d3.json( infile , initData );
 
-// reloadJson();
+reloadJson();
 
 // ---------------------------
 // this would ideally be a model object for the data
@@ -618,14 +618,22 @@ var myGraph = {
         // we should push and pull from the nodes list, instead
         // of clobbering it each time
 
-        // so we do a diff here of the current node list
-        // and the new list
-        // array.splice(index, 1)
+        // so we do a diff here of the current node list and the new one
 
         // this will also reset the list
+
+        /*
         this.nodes.length = 0 ;
         if ( n ) {
             this.nodes.push.apply( this.nodes , n );
+        }
+        */
+
+        if ( n ) {
+            mergeArray( this.nodes , n );
+        }
+        else {
+            this.nodes.length = 0 ;
         }
 
         this.reindexNodes();
@@ -728,21 +736,22 @@ function getClassSize(d) {
 }
 
 function mergeArray( orig , n ) {
-    // merge 'n' into 'o' by comparing the values of the array elements
+    // merge 'n' into 'o' by comparing the the 'ID' value
+    // of the merge object
 
     // 1) index the new array
     var newIdx = {} ;
     n.forEach(function(d, i) {
-        newIdx[d] = d ;
+        newIdx[d.id] = d ;
     });
 
     // walk the original array finding the elements to remove.
     // we can't remove them in-situ, because this messes with forEach()
     var delIdx = [];
     orig.forEach(function(d, i) {
-        if ( newIdx[d] ) {
+        if ( newIdx[d.id] ) {
             // remove this from the new index, we already have it
-            delete newIdx[d];
+            delete newIdx[d.id];
         }
         else {
             // flag this for removal from the old index
@@ -765,8 +774,8 @@ function mergeArray( orig , n ) {
 
     // lastly add the new elements to the array,
     // based on what's left in the index
-    Object.keys(newIdx).forEach(function(d, i) {
-        orig.push( newIdx[d] );
+    Object.keys(newIdx).forEach(function(key) {
+        orig.push( newIdx[key] );
     });
 
 }
