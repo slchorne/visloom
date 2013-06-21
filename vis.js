@@ -1,6 +1,9 @@
 // ---------------------------
 /*
     [ ] change the convergence and iterations
+    [ ] append and mesh the nodes in the graph
+        [ ] don't do a blanket reload
+        [ ] work off the id
 
 */
 // ---------------------------
@@ -59,7 +62,8 @@ function reloadJson() {
 
 //var infile = "loom-large.json" ;
 //d3.json( infile , initData );
-reloadJson();
+
+// reloadJson();
 
 // ---------------------------
 // this would ideally be a model object for the data
@@ -597,16 +601,43 @@ var myGraph = {
     },
 
     // helper methods
+    reindexNodes: function(){
+        // index the nodes by 'id'
+
+        // use a localvar to getaround 'this' popping
+        var ni = {} ;
+        this.nodes.forEach(function(d, i) {
+            ni[d.id] = d;
+        });
+
+        this.nodeIndex = ni ;
+    },
+
     setNodes: function(n){
+        // for efficiency and to make the graph animate better
+        // we should push and pull from the nodes list, instead
+        // of clobbering it each time
+
+        // so we do a diff here of the current node list
+        // and the new list
+        // array.splice(index, 1)
+
         // this will also reset the list
         this.nodes.length = 0 ;
         if ( n ) {
             this.nodes.push.apply( this.nodes , n );
         }
+
+        this.reindexNodes();
     },
     addNodes: function(n){
         //adding nodes should not require reindexing the links
         this.nodes.push.apply( this.nodes , n );
+        // but we do need to update the index
+        var ni = this.nodeIndex;
+        n.forEach(function(d,i){
+            ni[d.id] = d;
+        });
     },
 
     setLinks: function(l) {
@@ -649,18 +680,6 @@ var myGraph = {
         
         // [ ] error if the nodes do not exist
         // [ ] don't create the link
-    },
-
-    reindexNodes: function(){
-        // index the nodes by 'id'
-
-        // use a localvar to getaround 'this' popping
-        var ni = {} ;
-        this.nodes.forEach(function(d, i) {
-            ni[d.id] = d;
-        });
-
-        this.nodeIndex = ni ;
     },
 
     reindexLinks: function(){
@@ -706,5 +725,49 @@ var myGraph = {
 function getClassSize(d) {
     // calculate a size based on an nodes class
     return d.nodetype === 'root' ? 16 : 8;
+}
+
+function mergeArray( orig , n ) {
+    // merge 'n' into 'o' by comparing the values of the array elements
+
+    // 1) index the new array
+    var newIdx = {} ;
+    n.forEach(function(d, i) {
+        newIdx[d] = d ;
+    });
+
+    // walk the original array finding the elements to remove.
+    // we can't remove them in-situ, because this messes with forEach()
+    var delIdx = [];
+    orig.forEach(function(d, i) {
+        if ( newIdx[d] ) {
+            // remove this from the new index, we already have it
+            delete newIdx[d];
+        }
+        else {
+            // flag this for removal from the old index
+            // use unshift to reverse the array order
+            delIdx.unshift(i);
+        }
+    });
+
+    // now delete the items from the OLD , from top down
+    // because we work from the HIGHEST index, we don't risk
+    // rearranging the array contents
+    delIdx.forEach(function(i){
+        orig.splice(i,1);
+    });
+
+    //console.log( 'del l' , delIdx );
+    //console.log( 'new l' , l );
+    //console.log( 'new m' , m );
+    //console.log( 'new newIdx' , newIdx );
+
+    // lastly add the new elements to the array,
+    // based on what's left in the index
+    Object.keys(newIdx).forEach(function(d, i) {
+        orig.push( newIdx[d] );
+    });
+
 }
 
