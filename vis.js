@@ -1,9 +1,17 @@
 // ---------------------------
 /*
-    [ ] change the convergence and iterations
+
+    [ ] tabular flow data:
+        return columns.map ??
+        http://jsfiddle.net/7WQjr/
+
+    [ ] move the event handlers into the controller
+
+    [ ] move the json data into a model
+        [ ] we will want an EXT loader probably
+
     [ ] append and mesh the nodes in the graph
-        [ ] don't do a blanket reload
-        [ ] work off the id
+        [ ] still funky for 'groups' ??
 
 */
 // ---------------------------
@@ -22,7 +30,13 @@ var width = 600,
 // event handlers, they should be in the controller init method
 // (if we had one )
 
+
+//var bod = d3.select("body").select("#menu") ;
+//var bod = d3.select("div.menuBlock") ;
+//var bod = d3.select("body").select(".menuBlock") ;
 var bod = d3.select("body");
+/*
+*/
 bod.on( 'click' , function(e) {
     // find out what object we clicked on
     myController.setState( d3.event.srcElement.id );
@@ -37,6 +51,73 @@ bod.on( 'keypress' , function(e) {
         myController.setState();
     }
 });
+
+// ---------------------------
+//
+// try and just generate a table
+
+function flowTable(data){
+    var table = d3.select("body").append("table"),
+        thead = table.append("thead"),
+        tbody = table.append("tbody");
+
+    //var data = flows ;
+    var columns = [ 'ts','src','dst' ];
+
+    // append the header row
+    thead.append("tr")
+        .selectAll("th")
+        .data(columns)
+        .enter()
+        .append("th")
+            .text(function(column) { return column; });
+
+    // create a row for each object in the data
+    var rows = tbody.selectAll("tr")
+        .data(data)
+        .enter()
+        .append("tr");
+
+    /*
+    var rm = [];
+    data.forEach(function(row) {
+        // we're using the columns entries as hash keys
+        // map turns an array into a named hash
+        var ff = columns.map(function(column) {
+            console.log( 'rm map' , column );
+
+            return {column: column, value: row[column]};
+        });
+        console.log ( "return:",ff);
+        rm.push( ff );
+    });
+
+    console.log( "rowmap" , rm );
+    */
+
+    // create a cell in each row for each column
+    var cells = rows.selectAll("td")
+        .data(function(row) {
+
+            //console.log( 'in row' , row );
+
+            // we're using the columns entries as hash keys
+            return columns.map(function(column) {
+
+                // console.log( 'in map' , column );
+
+                return {column: column, value: row[column]};
+            });
+        })
+        .enter()
+        .append("td")
+            .text(function(d) { return d.value; });
+    
+    return table;
+}
+
+//
+// ---------------------------
 
 // reload the data on periodic intervals
 // animate!!
@@ -62,8 +143,6 @@ function reloadJson() {
 
 //var infile = "loom-large.json" ;
 //d3.json( infile , initData );
-
-reloadJson();
 
 // ---------------------------
 // this would ideally be a model object for the data
@@ -106,12 +185,19 @@ function readData( json ) {
 var myController = {
     // variables
     viewState: 'hosts',
+    //viewState: 'groups',
 
     // need an ENUM variable
     /*
     var en = { A: 1, B:2 };
     if en.A ...
         */
+
+    init: function() {
+        // this is the main function, all the work happens here
+        reloadJson();
+
+    },
 
     setState: function(state) {
         // pass a string to set the state
@@ -468,12 +554,18 @@ var myGraph = {
             .links(this.links)
             .layout(32)
         */
+
+        /*
+        var info = d3.select("body").append("text")
+            .text("messaging");
+        */
             
 
         var lsvg = d3.select("body").append("svg")
             .attr("width", width)
             .attr("height", height);
 
+        // floating text object
         lsvg.append("text")
             .attr("x", function(d) { return myG.viewX(.05); })
             .attr("y", function(d) { return myG.viewX(.07); })
@@ -487,6 +579,9 @@ var myGraph = {
             links: llinks,
             nodes: lnodes
         });
+
+        // render the table
+        var peopleTable = flowTable( jsonData.flows );
 
     },
 
@@ -510,12 +605,27 @@ var myGraph = {
             .attr("class","node")
             .call(this.d3Layout.drag)
 
+            .on( 'click' , function(e) {
+                // find out what object we clicked on
+                if ( d3.event && d3.event.srcElement ) {
+                    var d = d3.event.srcElement.__data__;
+                    //console.log ( 'node click', n , d );
+                    var i = d3.select( '#legend' );
+                    i.text( ' id:' + d.id
+                        + ' name:' + d.name
+                        + ' switch:' + d.ovs
+                        + ' port:' + d.port
+                        );
+
+                }
+            })
+
         snodes
             .append("circle")
             .attr("class", function(d) { 
                 return "node " + d.type; })
             .attr("r", function(d) {
-                return getClassSize(d) });
+                return getClassSize(d) })
 
         snodes
             .append("text")
@@ -638,12 +748,18 @@ var myGraph = {
 
         this.reindexNodes();
     },
+
     addNodes: function(n){
         //adding nodes should not require reindexing the links
-        this.nodes.push.apply( this.nodes , n );
         // but we do need to update the index
+
+        // console.log ( 'addn' , this.nodes );
+        // console.log ( 'addn' , n );
+
+        var nodelist = this.nodes;
         var ni = this.nodeIndex;
         n.forEach(function(d,i){
+            nodelist.push( d );
             ni[d.id] = d;
         });
     },
@@ -779,4 +895,10 @@ function mergeArray( orig , n ) {
     });
 
 }
+
+// ---------------------------
+// lets get this party started
+//
+myController.init();
+
 
