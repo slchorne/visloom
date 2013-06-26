@@ -9,9 +9,13 @@
 
     [ ] move the json data into a model
         [ ] we will want an EXT loader probably
+        [ ] need add/remove functions to the datamodel
+
 
     [ ] append and mesh the nodes in the graph
         [ ] still funky for 'groups' ??
+
+    [ ] move the code into erland
 
 */
 // ---------------------------
@@ -567,9 +571,10 @@ var myGraph = {
 
         // floating text object
         lsvg.append("text")
-            .attr("x", function(d) { return myG.viewX(.05); })
-            .attr("y", function(d) { return myG.viewX(.07); })
-            .text("Hosts");
+            .attr("x", function(d) { return myG.viewX(.55); })
+            .attr("y", function(d) { return myG.viewY(.95); })
+            .attr("id", 'legend')
+            .text("");
 
         lnodes = lsvg.selectAll(".node");
         llinks = lsvg.selectAll(".link");
@@ -609,13 +614,16 @@ var myGraph = {
                 // find out what object we clicked on
                 if ( d3.event && d3.event.srcElement ) {
                     var d = d3.event.srcElement.__data__;
-                    //console.log ( 'node click', n , d );
+                    console.log ( 'node click', d3.event , d );
                     var i = d3.select( '#legend' );
                     i.text( ' id:' + d.id
                         + ' name:' + d.name
                         + ' switch:' + d.ovs
                         + ' port:' + d.port
                         );
+                    //i.x = d3.event.clientX ;
+
+                    console.log ( i );
 
                 }
             })
